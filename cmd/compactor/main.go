@@ -22,6 +22,7 @@ func main() {
 	{
 		logger = log.NewLogfmtLogger(os.Stderr)
 		logger = log.With(logger, "ts", log.DefaultTimestampUTC)
+		logger = log.With(logger, "service", "compator")
 		logger = log.With(logger, "caller", log.DefaultCaller)
 	}
 
