@@ -2,10 +2,10 @@
 
 
 [[projects]]
+  branch = "master"
   name = "github.com/go-kit/kit"
   packages = ["endpoint","examples/profilesvc","log","sd","sd/consul","sd/internal/instance","sd/lb","transport/http"]
-  revision = "a9ca6725cbbea455e61c6bc8a1ed28e81eb3493b"
-  version = "v0.5.0"
+  revision = "0d313fb5fb3a94d87d61e6434785264e87a5d740"
 
 [[projects]]
   name = "github.com/go-logfmt/logfmt"
@@ -70,6 +70,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9bb42d4c0ccb19aed54295ca4cfdf87b64e56d1e4cbcc03cca11bfcc7dca6a20"
+  inputs-digest = "349d155b80a228d961ef7991ce1aa341f506396ed3912c8f0a1f014eb520bcce"
   solver-name = "gps-cdcl"
   solver-version = 1
