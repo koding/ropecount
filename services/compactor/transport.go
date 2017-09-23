@@ -44,8 +44,7 @@ func decodeProcessRequest(_ context.Context, r *http.Request) (request interface
 }
 
 func encodeProcessRequest(ctx context.Context, req *http.Request, request interface{}) error {
-	// r.Methods("POST").Path("/profiles/")
-	req.Method, req.URL.Path = "POST", "/profiles/"
+	req.Method, req.URL.Path = "POST", "/process/"
 	return encodeRequest(ctx, req, request)
 }
 

@@ -1,4 +1,4 @@
-// Package client provides a profilesvc client based on a predefined Consul
+// Package client provides a compactor client based on a predefined Consul
 // service name and relevant tags. Users must only provide the address of a
 // Consul server.
 package client
@@ -10,17 +10,17 @@ import (
 	consulapi "github.com/hashicorp/consul/api"
 
 	"github.com/go-kit/kit/endpoint"
-	"github.com/go-kit/kit/examples/profilesvc"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/sd"
 	"github.com/go-kit/kit/sd/consul"
 	"github.com/go-kit/kit/sd/lb"
+	"github.com/koding/ropecount/services/compactor"
 )
 
-// New returns a service that's load-balanced over instances of profilesvc found
-// in the provided Consul server. The mechanism of looking up profilesvc
+// New returns a service that's load-balanced over instances of compactor found
+// in the provided Consul server. The mechanism of looking up compactor
 // instances in Consul is hard-coded into the client.
-func New(consulAddr string, logger log.Logger) (profilesvc.Service, error) {
+func New(consulAddr string, logger log.Logger) (compactor.Service, error) {
 	apiclient, err := consulapi.NewClient(&consulapi.Config{
 		Address: consulAddr,
 	})
@@ -28,10 +28,10 @@ func New(consulAddr string, logger log.Logger) (profilesvc.Service, error) {
 		return nil, err
 	}
 
-	// As the implementer of profilesvc, we declare and enforce these
-	// parameters for all of the profilesvc consumers.
+	// As the implementer of compactor, we declare and enforce these
+	// parameters for all of the compactor consumers.
 	var (
-		consulService = "profilesvc"
+		consulService = "compactor"
 		consulTags    = []string{"prod"}
 		passingOnly   = true
 		retryMax      = 3
@@ -41,78 +41,22 @@ func New(consulAddr string, logger log.Logger) (profilesvc.Service, error) {
 	var (
 		sdclient  = consul.NewClient(apiclient)
 		instancer = consul.NewInstancer(sdclient, logger, consulService, consulTags, passingOnly)
-		endpoints profilesvc.Endpoints
+		endpoints compactor.Endpoints
 	)
 	{
-		factory := factoryFor(profilesvc.MakePostProfileEndpoint)
+		factory := factoryFor(compactor.MakeProcessEndpoint)
 		endpointer := sd.NewEndpointer(instancer, factory, logger)
 		balancer := lb.NewRoundRobin(endpointer)
 		retry := lb.Retry(retryMax, retryTimeout, balancer)
-		endpoints.PostProfileEndpoint = retry
-	}
-	{
-		factory := factoryFor(profilesvc.MakeGetProfileEndpoint)
-		endpointer := sd.NewEndpointer(instancer, factory, logger)
-		balancer := lb.NewRoundRobin(endpointer)
-		retry := lb.Retry(retryMax, retryTimeout, balancer)
-		endpoints.GetProfileEndpoint = retry
-	}
-	{
-		factory := factoryFor(profilesvc.MakePutProfileEndpoint)
-		endpointer := sd.NewEndpointer(instancer, factory, logger)
-		balancer := lb.NewRoundRobin(endpointer)
-		retry := lb.Retry(retryMax, retryTimeout, balancer)
-		endpoints.PutProfileEndpoint = retry
-	}
-	{
-		factory := factoryFor(profilesvc.MakePatchProfileEndpoint)
-		endpointer := sd.NewEndpointer(instancer, factory, logger)
-		balancer := lb.NewRoundRobin(endpointer)
-		retry := lb.Retry(retryMax, retryTimeout, balancer)
-		endpoints.PatchProfileEndpoint = retry
-	}
-	{
-		factory := factoryFor(profilesvc.MakeDeleteProfileEndpoint)
-		endpointer := sd.NewEndpointer(instancer, factory, logger)
-		balancer := lb.NewRoundRobin(endpointer)
-		retry := lb.Retry(retryMax, retryTimeout, balancer)
-		endpoints.DeleteProfileEndpoint = retry
-	}
-	{
-		factory := factoryFor(profilesvc.MakeGetAddressesEndpoint)
-		endpointer := sd.NewEndpointer(instancer, factory, logger)
-		balancer := lb.NewRoundRobin(endpointer)
-		retry := lb.Retry(retryMax, retryTimeout, balancer)
-		endpoints.GetAddressesEndpoint = retry
-	}
-	{
-		factory := factoryFor(profilesvc.MakeGetAddressEndpoint)
-		endpointer := sd.NewEndpointer(instancer, factory, logger)
-		balancer := lb.NewRoundRobin(endpointer)
-		retry := lb.Retry(retryMax, retryTimeout, balancer)
-		endpoints.GetAddressEndpoint = retry
-	}
-	{
-		factory := factoryFor(profilesvc.MakePostAddressEndpoint)
-		endpointer := sd.NewEndpointer(instancer, factory, logger)
-		balancer := lb.NewRoundRobin(endpointer)
-		retry := lb.Retry(retryMax, retryTimeout, balancer)
-		endpoints.PostAddressEndpoint = retry
-	}
-	{
-		factory := factoryFor(profilesvc.MakeDeleteAddressEndpoint)
-		endpointer := sd.NewEndpointer(instancer, factory, logger)
-		balancer := lb.NewRoundRobin(endpointer)
-		retry := lb.Retry(retryMax, retryTimeout, balancer)
-		endpoints.DeleteAddressEndpoint = retry
+		endpoints.ProcessEndpoint = retry
 	}
 
 	return endpoints, nil
 }
 
-func factoryFor(makeEndpoint func(profilesvc.Service) endpoint.Endpoint) sd.Factory {
+func factoryFor(makeEndpoint func(compactor.Service) endpoint.Endpoint) sd.Factory {
 	return func(instance string) (endpoint.Endpoint, io.Closer, error) {
-		service, err := profilesvc.MakeClientEndpoints(instance)
+		service, err := compactor.MakeClientEndpoints(instance)
 		if err != nil {
 			return nil, nil, err
 		}
