@@ -1,0 +1,40 @@
+version: '2'
+services:
+  base:
+    build: .
+    image: koding/ropecount_base
+    restart: on-failure
+    volumes:
+    - .:/go/src/github.com/koding/ropecount
+    - logvolume01:/var/log
+
+
+  auther:
+    extends: base
+    ports:
+    - "8080:8080"
+    command: /go/bin/auther --http.addr :8080
+    links:
+    - redis
+
+  compactor:
+    extends: base
+    ports:
+    - "8081:8081"
+    command: /go/bin/compactor --http.addr :8081
+    links:
+    - redis
+
+  persister:
+    extends: base
+    ports:
+    - "8083:8083"
+    command: /go/bin/persister --http.addr :8083
+    links:
+    - redis
+
+  redis:
+    image: redis
+
+volumes:
+  logvolume01: {}
