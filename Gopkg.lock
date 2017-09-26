@@ -2,9 +2,15 @@
 
 
 [[projects]]
+  name = "github.com/garyburd/redigo"
+  packages = ["internal","redis"]
+  revision = "433969511232c397de61b1442f9fd49ec06ae9ba"
+  version = "v1.1.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/go-kit/kit"
-  packages = ["endpoint","examples/profilesvc","log","sd","sd/consul","sd/internal/instance","sd/lb","transport/http"]
+  packages = ["endpoint","log","sd","sd/consul","sd/internal/instance","sd/lb","transport/http"]
   revision = "0d313fb5fb3a94d87d61e6434785264e87a5d740"
 
 [[projects]]
@@ -70,6 +76,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "349d155b80a228d961ef7991ce1aa341f506396ed3912c8f0a1f014eb520bcce"
+  inputs-digest = "ca36b1a210669ef868b804556564d750c6b8670f51d0ada53258b488a88a6bba"
   solver-name = "gps-cdcl"
   solver-version = 1
