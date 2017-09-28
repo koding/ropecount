@@ -25,9 +25,9 @@ type loggingMiddleware struct {
 	logger log.Logger
 }
 
-func (mw loggingMiddleware) Auth(ctx context.Context, p Auth) (err error) {
+func (mw loggingMiddleware) Auth(ctx context.Context, p Auth) (token string, err error) {
 	defer func(begin time.Time) {
-		mw.logger.Log("method", "Auth", "id", p.ID, "took", time.Since(begin), "err", err)
+		mw.logger.Log("method", "Auth", "source", p.Source, "took", time.Since(begin), "err", err)
 	}(time.Now())
 	return mw.next.Auth(ctx, p)
 }

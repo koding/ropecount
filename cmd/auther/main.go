@@ -20,7 +20,7 @@ func main() {
 
 	var s auther.Service
 	{
-		s = auther.NewInmemService(app.Logger)
+		s = auther.NewService(app.Logger)
 		s = auther.LoggingMiddleware(app.Logger)(s)
 	}
 

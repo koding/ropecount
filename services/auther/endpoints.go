@@ -42,22 +42,22 @@ func MakeClientEndpoints(instance string) (Endpoints, error) {
 }
 
 // Auth implements Service. Primarily useful in a client.
-func (e Endpoints) Auth(ctx context.Context, p Auth) error {
+func (e Endpoints) Auth(ctx context.Context, p Auth) (string, error) {
 	request := AuthRequest{Auth: p}
 	response, err := e.AuthEndpoint(ctx, request)
 	if err != nil {
-		return err
+		return "", err
 	}
 	resp := response.(AuthResponse)
-	return resp.Err
+	return resp.Token, resp.Err
 }
 
 // MakeAuthEndpoint returns an endpoint for the server.
 func MakeAuthEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(AuthRequest)
-		e := s.Auth(ctx, req.Auth)
-		return AuthResponse{Err: e}, nil
+		token, e := s.Auth(ctx, req.Auth)
+		return AuthResponse{Token: token, Err: e}, nil
 	}
 }
 
@@ -68,7 +68,8 @@ type AuthRequest struct {
 
 // AuthResponse holds the response data for the Auth handler
 type AuthResponse struct {
-	Err error `json:"err,omitempty"`
+	Token string `json:"token,omitempty"`
+	Err   error  `json:"err,omitempty"`
 }
 
 func (r AuthResponse) error() error { return r.Err }

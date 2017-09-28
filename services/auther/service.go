@@ -2,42 +2,53 @@ package auther
 
 import (
 	"context"
-	"sync"
 
 	"github.com/go-kit/kit/log"
+	"github.com/koding/ropecount/pkg"
 )
 
 // Service is the interface for auther operations.
 type Service interface {
-	Auth(ctx context.Context, p Auth) error
+	Auth(ctx context.Context, p Auth) (string, error)
 }
 
 // Auth represents a single auth request.
 type Auth struct {
-	ID string `json:"id"`
+	Source   string `json:"source"`
+	Target   string `json:"target"`
+	FuncName string `json:"funcName"`
 }
 
-type inmemService struct {
-	mtx    sync.RWMutex
+type autherService struct {
 	logger log.Logger
-	m      map[string]Auth
 }
 
-// NewInmemService creates a Auth service backend.
-func NewInmemService(logger log.Logger) Service {
-	return &inmemService{
-		m:      map[string]Auth{},
+// NewService creates a Auth service backend.
+func NewService(logger log.Logger) Service {
+	return &autherService{
 		logger: logger,
 	}
 }
 
-func (s *inmemService) Auth(ctx context.Context, p Auth) error {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-	if _, ok := s.m[p.ID]; ok {
-		return nil
+func (s *autherService) Auth(ctx context.Context, p Auth) (string, error) {
+	// Create the Claims
+	claims := &pkg.JWTData{
+		Source: p.Source,
+		Target: p.Target,
 	}
 
-	s.m[p.ID] = p
-	return nil
+	tokenString, err := pkg.SignJWT(claims)
+	if err != nil {
+		return "", err
+	}
+
+	s.logger.Log("signedstring", tokenString)
+
+	claims2, err := pkg.ParseJWT(s.logger, tokenString)
+	if err != nil {
+		return "", err
+	}
+
+	s.logger.Log("claims", claims2, "err", err)
+	return tokenString, nil
 }
