@@ -75,6 +75,18 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/kr/pretty"
+  packages = ["."]
+  revision = "cfb55aafdaf3ec08f0db22699ab822c50091b1c4"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/kr/text"
+  packages = ["."]
+  revision = "7cafcd837844e784b526369c9bce262804aebc60"
+
+[[projects]]
+  branch = "master"
   name = "github.com/mitchellh/go-homedir"
   packages = ["."]
   revision = "b8bc1bf767474819792c23f32d8286a45736f1c6"
@@ -82,6 +94,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0f5aa7b0b96344bcb216bc31e0d90a6915c5cb5512c1055bd715ba40f19d450f"
+  inputs-digest = "e8fa9c28ab6983c744f257b0951c3125b3aa8de77e62a41e776151ec6bf133e4"
   solver-name = "gps-cdcl"
   solver-version = 1
