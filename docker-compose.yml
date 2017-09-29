@@ -9,11 +9,11 @@ services:
     - logvolume01:/var/log
 
 
-  auther:
+  counter:
     extends: base
     ports:
     - "8080:8080"
-    command: /go/bin/auther --http.addr :8080
+    command: /go/bin/counter --http.addr :8080
     links:
     - redis
 
