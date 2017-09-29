@@ -28,6 +28,10 @@ type Claim struct {
 
 // Valid checks if the Claim is valid or not.
 func (c *Claim) Valid() error {
+	if c.Issuer != issuer {
+		return errors.New("invalid issuer")
+	}
+
 	return c.StandardClaims.Valid()
 }
 
