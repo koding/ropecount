@@ -18,6 +18,7 @@ type App struct {
 	Logger log.Logger
 	Redis  *redis.Pool
 
+	name      string
 	redisAddr *string
 	httpAddr  *string
 }
@@ -33,9 +34,7 @@ const (
 // NewApp creates a new App context for the system.
 func NewApp(name string, conf *flag.FlagSet) *App {
 
-	app := &App{}
 	var err error
-	var redisPool *redis.Pool
 	var logger log.Logger
 
 	{ // initialize logger
@@ -48,6 +47,11 @@ func NewApp(name string, conf *flag.FlagSet) *App {
 
 	err = conf.Parse(os.Args[1:])
 	dieIfError(logger, err, "flagparse")
+
+	app := &App{
+		name:   name,
+		Logger: logger,
+	}
 
 	{ // initialize configs
 		if redisFlag := conf.Lookup(ConfRedisAddr); redisFlag != nil {
@@ -62,15 +66,12 @@ func NewApp(name string, conf *flag.FlagSet) *App {
 
 	{ // initialize if redis is given as config
 		if app.redisAddr != nil {
-			redisPool, err = NewRedisPool(*app.redisAddr)
+			app.Redis, err = NewRedisPool(*app.redisAddr)
 			dieIfError(logger, err, "redisconn")
 		}
 	}
 
-	return &App{
-		Logger: logger,
-		Redis:  redisPool,
-	}
+	return app
 }
 
 func dieIfError(logger log.Logger, err error, name string) {
@@ -109,6 +110,6 @@ func (a *App) Listen(handler http.Handler) chan error {
 			}()
 		}
 	}
-
+	a.Logger.Log("func", "listen", "name", a.name)
 	return errs
 }
