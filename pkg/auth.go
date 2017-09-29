@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -9,10 +10,15 @@ import (
 	"github.com/go-kit/kit/log/level"
 )
 
+const (
+	issuer = "auther_v1.0"
+)
+
 // JWTData holds the data for JWT signing
 type JWTData struct {
-	Source string
-	Target string
+	Source    string
+	Target    string
+	CreatedAt time.Time
 }
 
 // Claim holds authentication claims
@@ -22,6 +28,10 @@ type Claim struct {
 
 	// Target is the request executor
 	Tgt string `json:"tgt"`
+
+	// CreatedAt holds the creation time of this token in nano sec precision.
+	// IssuedAt does not allow nano secs.
+	CreatedAt int64 `json:"cat"`
 
 	jwt.StandardClaims
 }
@@ -42,14 +52,15 @@ func SignJWT(d *JWTData) (string, error) {
 
 	// Create the Claims
 	claims := &Claim{
-		Src: d.Source,
-		Tgt: d.Target,
+		Src:       d.Source,
+		Tgt:       d.Target,
+		CreatedAt: time.Now().UTC().UnixNano(),
 		StandardClaims: jwt.StandardClaims{
-			Issuer: "auther", // string iss
+			Issuer: issuer, // string iss
 			// Audience  string aud
 			// ExpiresAt int64  exp
 			// Id        string jti
-			IssuedAt: time.Now().Unix(), //  int64 iat
+			// IssuedAt  int64 iat
 			// NotBefore int64  nbf
 			// Subject   string sub
 		},
@@ -90,8 +101,9 @@ func ParseJWT(logger log.Logger, s string) (*JWTData, error) {
 		}
 
 		return &JWTData{
-			Source: claims.Src,
-			Target: claims.Tgt,
+			Source:    claims.Src,
+			Target:    claims.Tgt,
+			CreatedAt: time.Unix(0, claims.CreatedAt),
 		}, nil
 	}
 
