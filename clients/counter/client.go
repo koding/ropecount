@@ -1,4 +1,4 @@
-// Package client provides a auther client based on a predefined Consul
+// Package client provides a counter client based on a predefined Consul
 // service name and relevant tags. Users must only provide the address of a
 // Consul server.
 package client
@@ -14,13 +14,13 @@ import (
 	"github.com/go-kit/kit/sd"
 	"github.com/go-kit/kit/sd/consul"
 	"github.com/go-kit/kit/sd/lb"
-	"github.com/koding/ropecount/services/auther"
+	"github.com/koding/ropecount/services/counter"
 )
 
-// New returns a service that's load-balanced over instances of auther found
-// in the provided Consul server. The mechanism of looking up auther
+// New returns a service that's load-balanced over instances of counter found
+// in the provided Consul server. The mechanism of looking up counter
 // instances in Consul is hard-coded into the client.
-func New(consulAddr string, logger log.Logger) (auther.Service, error) {
+func New(consulAddr string, logger log.Logger) (counter.Service, error) {
 	apiclient, err := consulapi.NewClient(&consulapi.Config{
 		Address: consulAddr,
 	})
@@ -28,10 +28,10 @@ func New(consulAddr string, logger log.Logger) (auther.Service, error) {
 		return nil, err
 	}
 
-	// As the implementer of auther, we declare and enforce these
-	// parameters for all of the auther consumers.
+	// As the implementer of counter, we declare and enforce these
+	// parameters for all of the counter consumers.
 	var (
-		consulService = "auther"
+		consulService = "counter"
 		consulTags    = []string{"prod"}
 		passingOnly   = true
 		retryMax      = 3
@@ -41,22 +41,29 @@ func New(consulAddr string, logger log.Logger) (auther.Service, error) {
 	var (
 		sdclient  = consul.NewClient(apiclient)
 		instancer = consul.NewInstancer(sdclient, logger, consulService, consulTags, passingOnly)
-		endpoints auther.Endpoints
+		endpoints counter.Endpoints
 	)
 	{
-		factory := factoryFor(auther.MakeAuthEndpoint)
+		factory := factoryFor(counter.MakeStartEndpoint)
 		endpointer := sd.NewEndpointer(instancer, factory, logger)
 		balancer := lb.NewRoundRobin(endpointer)
 		retry := lb.Retry(retryMax, retryTimeout, balancer)
-		endpoints.AuthEndpoint = retry
+		endpoints.StartEndpoint = retry
+	}
+	{
+		factory := factoryFor(counter.MakeStopEndpoint)
+		endpointer := sd.NewEndpointer(instancer, factory, logger)
+		balancer := lb.NewRoundRobin(endpointer)
+		retry := lb.Retry(retryMax, retryTimeout, balancer)
+		endpoints.StopEndpoint = retry
 	}
 
 	return endpoints, nil
 }
 
-func factoryFor(makeEndpoint func(auther.Service) endpoint.Endpoint) sd.Factory {
+func factoryFor(makeEndpoint func(counter.Service) endpoint.Endpoint) sd.Factory {
 	return func(instance string) (endpoint.Endpoint, io.Closer, error) {
-		service, err := auther.MakeClientEndpoints(instance)
+		service, err := counter.MakeClientEndpoints(instance)
 		if err != nil {
 			return nil, nil, err
 		}

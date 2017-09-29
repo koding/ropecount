@@ -1,6 +1,6 @@
-package auther
+package counter
 
-// The auther is just over HTTP, so we just have a single transport.go.
+// The counter is just over HTTP, so we just have a single transport.go.
 
 import (
 	"bytes"
@@ -16,7 +16,7 @@ import (
 )
 
 // MakeHTTPHandler mounts all of the service endpoints into an http.Handler.
-// Useful in a auther server.
+// Useful in a counter server.
 func MakeHTTPHandler(s Service, logger log.Logger) http.Handler {
 	r := mux.NewRouter()
 	e := MakeServerEndpoints(s)
@@ -25,9 +25,16 @@ func MakeHTTPHandler(s Service, logger log.Logger) http.Handler {
 		httptransport.ServerErrorEncoder(encodeError),
 	}
 
-	r.Methods("POST").Path("/auth").Handler(httptransport.NewServer(
-		e.AuthEndpoint,
-		decodeAuthRequest,
+	r.Methods("POST").Path("/start").Handler(httptransport.NewServer(
+		e.StartEndpoint,
+		decodeStartRequest,
+		encodeResponse,
+		options...,
+	))
+
+	r.Methods("POST").Path("/stop").Handler(httptransport.NewServer(
+		e.StopEndpoint,
+		decodeStopRequest,
 		encodeResponse,
 		options...,
 	))
@@ -35,25 +42,22 @@ func MakeHTTPHandler(s Service, logger log.Logger) http.Handler {
 	return r
 }
 
-func decodeAuthRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
-	var req AuthRequest
-	if e := json.NewDecoder(r.Body).Decode(&req.Auth); e != nil {
+func decodeStartRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
+	var req StartRequest
+	if e := json.NewDecoder(r.Body).Decode(&req); e != nil {
 		return nil, e
 	}
 	return req, nil
 }
 
-func encodeAuthRequest(ctx context.Context, req *http.Request, request interface{}) error {
-	// r.Methods("POST").Path("/profiles/")
-	req.Method, req.URL.Path = "POST", "/profiles/"
-	return encodeRequest(ctx, req, request)
+func decodeStopRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
+	var req StopRequest
+	if e := json.NewDecoder(r.Body).Decode(&req); e != nil {
+		return nil, e
+	}
+	return req, nil
 }
 
-func decodeAuthResponse(_ context.Context, resp *http.Response) (interface{}, error) {
-	var response AuthResponse
-	err := json.NewDecoder(resp.Body).Decode(&response)
-	return response, err
-}
 
 // errorer is implemented by all concrete response types that may contain
 // errors. It allows us to change the HTTP response code without needing to
@@ -80,7 +84,7 @@ func encodeResponse(ctx context.Context, w http.ResponseWriter, response interfa
 
 // encodeRequest likewise JSON-encodes the request to the HTTP request body.
 // Don't use it directly as a transport/http.Client EncodeRequestFunc:
-// auther endpoints require mutating the HTTP method and request path.
+// counter endpoints require mutating the HTTP method and request path.
 func encodeRequest(_ context.Context, req *http.Request, request interface{}) error {
 	var buf bytes.Buffer
 	err := json.NewEncoder(&buf).Encode(request)
@@ -105,6 +109,6 @@ func encodeError(_ context.Context, err error, w http.ResponseWriter) {
 func codeFrom(err error) int {
 	switch err {
 	default:
-		return http.StatusInternalServerError
+		return http.StatusBadRequest
 	}
 }

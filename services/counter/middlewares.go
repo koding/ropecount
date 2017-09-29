@@ -1,4 +1,4 @@
-package auther
+package counter
 
 import (
 	"context"
@@ -25,9 +25,16 @@ type loggingMiddleware struct {
 	logger log.Logger
 }
 
-func (mw loggingMiddleware) Auth(ctx context.Context, p Auth) (token string, err error) {
+func (mw loggingMiddleware) Start(ctx context.Context, p StartRequest) (token string, err error) {
 	defer func(begin time.Time) {
-		mw.logger.Log("method", "Auth", "source", p.Source, "took", time.Since(begin), "err", err)
+		mw.logger.Log("method", "Start", "source", p.Source, "took", time.Since(begin), "err", err)
 	}(time.Now())
-	return mw.next.Auth(ctx, p)
+	return mw.next.Start(ctx, p)
+}
+
+func (mw loggingMiddleware) Stop(ctx context.Context, p StopRequest) (token string, err error) {
+	defer func(begin time.Time) {
+		mw.logger.Log("method", "Stop", "source", p.Token, "took", time.Since(begin), "err", err)
+	}(time.Now())
+	return mw.next.Stop(ctx, p)
 }

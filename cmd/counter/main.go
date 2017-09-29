@@ -6,11 +6,11 @@ import (
 
 	"github.com/go-kit/kit/log"
 	"github.com/koding/ropecount/pkg"
-	"github.com/koding/ropecount/services/auther"
+	"github.com/koding/ropecount/services/counter"
 )
 
 func main() {
-	name := "auther"
+	name := "counter"
 	conf := flag.NewFlagSet(name, flag.ExitOnError)
 
 	pkg.AddHTTPConf(conf)
@@ -18,15 +18,15 @@ func main() {
 
 	app := pkg.NewApp(name, conf)
 
-	var s auther.Service
+	var s counter.Service
 	{
-		s = auther.NewService(app.Logger)
-		s = auther.LoggingMiddleware(app.Logger)(s)
+		s = counter.NewService(app.Logger)
+		s = counter.LoggingMiddleware(app.Logger)(s)
 	}
 
 	var h http.Handler
 	{
-		h = auther.MakeHTTPHandler(s, log.With(app.Logger, "component", "HTTP"))
+		h = counter.MakeHTTPHandler(s, log.With(app.Logger, "component", "HTTP"))
 	}
 
 	app.Logger.Log("exit", <-app.Listen(h))
