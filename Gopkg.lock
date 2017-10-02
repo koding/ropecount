@@ -68,22 +68,16 @@
   version = "v0.8.1"
 
 [[projects]]
+  branch = "options"
+  name = "github.com/koding/redis"
+  packages = ["."]
+  revision = "cee969b1405e3dbe3ee5794c10f0129267440941"
+
+[[projects]]
   branch = "master"
   name = "github.com/kr/logfmt"
   packages = ["."]
   revision = "b84e30acd515aadc4b783ad4ff83aff3299bdfe0"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/kr/pretty"
-  packages = ["."]
-  revision = "cfb55aafdaf3ec08f0db22699ab822c50091b1c4"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/kr/text"
-  packages = ["."]
-  revision = "7cafcd837844e784b526369c9bce262804aebc60"
 
 [[projects]]
   branch = "master"
@@ -94,6 +88,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "e8fa9c28ab6983c744f257b0951c3125b3aa8de77e62a41e776151ec6bf133e4"
+  inputs-digest = "779c1b1732df41517f4bd06716954c6a798b7f5461c4b87a2962f76676a446db"
   solver-name = "gps-cdcl"
   solver-version = 1
