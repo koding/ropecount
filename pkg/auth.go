@@ -18,6 +18,7 @@ const (
 type JWTData struct {
 	Source    string
 	Target    string
+	FuncName  string
 	CreatedAt time.Time
 }
 
@@ -28,6 +29,9 @@ type Claim struct {
 
 	// Target is the request executor
 	Tgt string `json:"tgt"`
+
+	// Fn holds the function value.
+	Fn string `json:"fn"`
 
 	// CreatedAt holds the creation time of this token in nano sec precision.
 	// IssuedAt does not allow nano secs.
@@ -54,6 +58,7 @@ func SignJWT(d *JWTData) (string, error) {
 	claims := &Claim{
 		Src:       d.Source,
 		Tgt:       d.Target,
+		Fn:        d.FuncName,
 		CreatedAt: time.Now().UTC().UnixNano(),
 		StandardClaims: jwt.StandardClaims{
 			Issuer: issuer, // string iss
@@ -103,6 +108,7 @@ func ParseJWT(logger log.Logger, s string) (*JWTData, error) {
 		return &JWTData{
 			Source:    claims.Src,
 			Target:    claims.Tgt,
+			FuncName:  claims.Fn,
 			CreatedAt: time.Unix(0, claims.CreatedAt),
 		}, nil
 	}

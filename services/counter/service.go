@@ -40,8 +40,9 @@ func NewService(logger log.Logger) Service {
 func (s *counterService) Start(ctx context.Context, p StartRequest) (string, error) {
 	// Create the Claims
 	claims := &pkg.JWTData{
-		Source: p.Source,
-		Target: p.Target,
+		Source:   p.Source,
+		Target:   p.Target,
+		FuncName: p.FuncName,
 	}
 
 	tokenString, err := pkg.SignJWT(claims)
