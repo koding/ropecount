@@ -8,15 +8,15 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/garyburd/redigo/redis"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
+	"github.com/koding/redis"
 )
 
 // App is the context for services.
 type App struct {
 	Logger log.Logger
-	Redis  *redis.Pool
+	Redis  *redis.RedisSession
 
 	name      string
 	redisAddr *string
@@ -41,7 +41,7 @@ func NewApp(name string, conf *flag.FlagSet) *App {
 		logger = log.NewJSONLogger(os.Stderr)
 		logger = log.With(logger, "ts", log.DefaultTimestampUTC)
 		logger = log.With(logger, "service", name)
-		logger = level.NewFilter(logger, level.AllowDebug())
+		logger = level.NewFilter(logger, level.AllowDebug()) // TODO: make this configurable
 		logger = log.With(logger, "caller", log.DefaultCaller)
 	}
 
@@ -110,6 +110,7 @@ func (a *App) Listen(handler http.Handler) chan error {
 			}()
 		}
 	}
-	a.Logger.Log("func", "listen", "name", a.name)
+
+	a.Logger.Log("func", "http listen")
 	return errs
 }
