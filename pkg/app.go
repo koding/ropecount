@@ -16,7 +16,7 @@ import (
 // App is the context for services.
 type App struct {
 	Logger log.Logger
-	Redis  *redis.RedisSession
+	redis  *redis.RedisSession
 
 	name      string
 	redisAddr *string
@@ -66,12 +66,21 @@ func NewApp(name string, conf *flag.FlagSet) *App {
 
 	{ // initialize if redis is given as config
 		if app.redisAddr != nil {
-			app.Redis, err = NewRedisPool(*app.redisAddr)
+			app.redis, err = NewRedisPool(*app.redisAddr)
 			dieIfError(logger, err, "redisconn")
 		}
 	}
 
 	return app
+}
+
+// MustGetRedis returns the redis if it is already initialized. If the config is
+// not given or the connection is not established yet, panics.
+func (a *App) MustGetRedis() *redis.RedisSession {
+	if a.redis == nil {
+		panic("redis is not initialized yet.")
+	}
+	return a.redis
 }
 
 func dieIfError(logger log.Logger, err error, name string) {
