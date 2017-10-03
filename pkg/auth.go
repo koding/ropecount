@@ -45,7 +45,15 @@ func (c *Claim) Valid() error {
 	if c.Issuer != issuer {
 		return errors.New("invalid issuer")
 	}
-
+	if c.Src == "" {
+		return errors.New("src is not set")
+	}
+	if c.Tgt == "" {
+		return errors.New("tgt is not set")
+	}
+	if c.Fn == "" {
+		return errors.New("fn is not set")
+	}
 	return c.StandardClaims.Valid()
 }
 
