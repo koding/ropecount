@@ -56,7 +56,7 @@ func New(consulAddr string, logger log.Logger) (compactor.Service, error) {
 
 func factoryFor(makeEndpoint func(compactor.Service) endpoint.Endpoint) sd.Factory {
 	return func(instance string) (endpoint.Endpoint, io.Closer, error) {
-		service, err := compactor.MakeClientEndpoints(instance)
+		service, err := compactor.MakeHTTPClientEndpoints(instance)
 		if err != nil {
 			return nil, nil, err
 		}

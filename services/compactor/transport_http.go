@@ -8,50 +8,14 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-
-	"github.com/gorilla/mux"
-
-	"github.com/go-kit/kit/log"
-	httptransport "github.com/go-kit/kit/transport/http"
 )
-
-// MakeHTTPHandler mounts all of the service endpoints into an http.Handler.
-// Useful in a compactor server.
-func MakeHTTPHandler(s Service, logger log.Logger) http.Handler {
-	r := mux.NewRouter()
-	e := MakeServerEndpoints(s)
-	options := []httptransport.ServerOption{
-		httptransport.ServerErrorLogger(logger),
-		httptransport.ServerErrorEncoder(encodeError),
-	}
-
-	r.Methods("POST").Path("/process").Handler(httptransport.NewServer(
-		e.ProcessEndpoint,
-		decodeProcessRequest,
-		encodeResponse,
-		options...,
-	))
-
-	return r
-}
 
 func decodeProcessRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
 	var req ProcessRequest
-	if e := json.NewDecoder(r.Body).Decode(&req.Profile); e != nil {
+	if e := json.NewDecoder(r.Body).Decode(&req); e != nil {
 		return nil, e
 	}
 	return req, nil
-}
-
-func encodeProcessRequest(ctx context.Context, req *http.Request, request interface{}) error {
-	req.Method, req.URL.Path = "POST", "/process/"
-	return encodeRequest(ctx, req, request)
-}
-
-func decodeProcessResponse(_ context.Context, resp *http.Response) (interface{}, error) {
-	var response ProcessResponse
-	err := json.NewDecoder(resp.Body).Decode(&response)
-	return response, err
 }
 
 // errorer is implemented by all concrete response types that may contain

@@ -10,6 +10,7 @@ import (
 // Middleware describes a service (as opposed to endpoint) middleware.
 type Middleware func(Service) Service
 
+// LoggingMiddleware logs the incoming requests
 func LoggingMiddleware(logger log.Logger) Middleware {
 	return func(next Service) Service {
 		return &loggingMiddleware{
@@ -24,9 +25,9 @@ type loggingMiddleware struct {
 	logger log.Logger
 }
 
-func (mw loggingMiddleware) Process(ctx context.Context, p Profile) (err error) {
+func (mw loggingMiddleware) Process(ctx context.Context, req ProcessRequest) (err error) {
 	defer func(begin time.Time) {
-		mw.logger.Log("method", "Process", "id", p.ID, "took", time.Since(begin), "err", err)
+		mw.logger.Log("method", "Process", "took", time.Since(begin), "err", err)
 	}(time.Now())
-	return mw.next.Process(ctx, p)
+	return mw.next.Process(ctx, req)
 }

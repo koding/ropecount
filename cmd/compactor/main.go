@@ -20,7 +20,7 @@ func main() {
 
 	var s compactor.Service
 	{
-		s = compactor.NewInmemService(app.Logger)
+		s = compactor.NewService(app)
 		s = compactor.LoggingMiddleware(app.Logger)(s)
 	}
 

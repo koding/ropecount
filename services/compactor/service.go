@@ -2,43 +2,58 @@ package compactor
 
 import (
 	"context"
-	"sync"
+	"fmt"
+	"time"
 
-	"github.com/go-kit/kit/log"
+	"github.com/koding/ropecount/pkg"
 )
 
 // Service is a simple interface for compactor operations.
 type Service interface {
-	Process(ctx context.Context, p Profile) error
+	Process(ctx context.Context, p ProcessRequest) error
 }
 
-// Profile represents a single user profile.
-// ID should be globally unique.
-type Profile struct {
-	ID string `json:"id"`
+type compactorService struct {
+	app *pkg.App
 }
 
-type inmemService struct {
-	mtx    sync.RWMutex
-	logger log.Logger
-	m      map[string]Profile
-}
-
-// NewInmemService creates a Compator service
-func NewInmemService(logger log.Logger) Service {
-	return &inmemService{
-		m:      map[string]Profile{},
-		logger: logger,
+// NewService creates a Compator service
+func NewService(app *pkg.App) Service {
+	return &compactorService{
+		app: app,
 	}
 }
 
-func (s *inmemService) Process(ctx context.Context, p Profile) error {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-	if _, ok := s.m[p.ID]; ok {
-		return nil
+func (c *compactorService) Process(ctx context.Context, p ProcessRequest) error {
+	c.app.Logger.Log("starttime", p.StartAt.Format(time.RFC3339))
+
+	d := 5 * time.Minute // we only work in around 5 mins
+	t := p.StartAt
+
+	// We compact the values that are set 2*d duration before.
+	// d/2 is required for time.Round(d). It rounds up after the halfway values.
+	tr := t.Add(-d * 2).Add(-(d / 2)).Round(d)
+	tl := tr.Add(-time.Hour) // / process till this time
+
+	for tl.UnixNano() <= tr.UnixNano() {
+		fmt.Printf(" = %s\n", tr.Format(time.RFC3339))
+
+		tr = tr.Add(-d)
 	}
 
-	s.m[p.ID] = p
+	// redisConn := c.app.MustGetRedis()
+	// conn := redisConn.Pool().Get()
+	// defer conn.Close()
+
+	// // We dont need to DISCARD on error cases. Conn.Close already handles them.
+	// // For futher info see pool.go/pooledConnection::Close()
+	// if _, err := conn.Do("MULTI"); err != nil {
+	// 	return err
+	// }
+
+	// if _, err := conn.Do("EXEC"); err != nil {
+	// 	return err
+	// }
+
 	return nil
 }
