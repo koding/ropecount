@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/go-kit/kit/log"
 	"github.com/koding/ropecount/pkg"
 )
 
@@ -50,27 +49,53 @@ func (s *counterService) Start(ctx context.Context, p StartRequest) (string, err
 		return "", err
 	}
 
-	s.logger.Log("signedstring", tokenString)
+	s.app.Logger.Log("signedstring", tokenString)
 
-	claims2, err := pkg.ParseJWT(s.logger, tokenString)
+	claims2, err := pkg.ParseJWT(s.app.Logger, tokenString)
 	if err != nil {
 		return "", err
 	}
 
-	s.logger.Log("claims", claims2, "err", err)
+	s.app.Logger.Log("claims", claims2, "err", err)
 	return tokenString, nil
 }
 
 func (s *counterService) Stop(ctx context.Context, p StopRequest) (string, error) {
-	s.logger.Log("signedstring", p.Token)
+	s.app.Logger.Log("signedstring", p.Token)
 
-	claims, err := pkg.ParseJWT(s.logger, p.Token)
+	claims, err := pkg.ParseJWT(s.app.Logger, p.Token)
 	if err != nil {
 		return "", err
 	}
 
 	dur := time.Now().UTC().Sub(claims.CreatedAt)
-	s.logger.Log("took", dur.String())
+	s.app.Logger.Log("took", dur.String())
+
+	redisConn := s.app.MustGetRedis()
+	conn := redisConn.Pool().Get()
+	defer conn.Close()
+
+	// We dont need to DISCARD on error cases. Conn.Close already handles them.
+	// For futher info see pool.go/pooledConnection::Close()
+	if _, err := conn.Do("MULTI"); err != nil {
+		return "", err
+	}
+
+	if _, err := conn.Do("INCRBY", "src:"+claims.Source, int64(dur)); err != nil {
+		return "", err
+	}
+
+	if _, err := conn.Do("INCRBY", "tgt:"+claims.Target, int64(dur)); err != nil {
+		return "", err
+	}
+
+	if _, err := conn.Do("INCRBY", "fn:"+claims.FuncName, int64(dur)); err != nil {
+		return "", err
+	}
+
+	if _, err := conn.Do("EXEC"); err != nil {
+		return "", err
+	}
 
 	return dur.String(), nil
 }
