@@ -81,15 +81,15 @@ func (s *counterService) Stop(ctx context.Context, p StopRequest) (string, error
 		return "", err
 	}
 
-	if _, err := conn.Do("INCRBY", "src:"+claims.Source, int64(dur)); err != nil {
+	if _, err := conn.Do("INCRBY", "counter:src:"+claims.Source, int64(dur)); err != nil {
 		return "", err
 	}
 
-	if _, err := conn.Do("INCRBY", "tgt:"+claims.Target, int64(dur)); err != nil {
+	if _, err := conn.Do("INCRBY", "counter:tgt:"+claims.Target, int64(dur)); err != nil {
 		return "", err
 	}
 
-	if _, err := conn.Do("INCRBY", "fn:"+claims.FuncName, int64(dur)); err != nil {
+	if _, err := conn.Do("INCRBY", "counter:fn:"+claims.FuncName, int64(dur)); err != nil {
 		return "", err
 	}
 
