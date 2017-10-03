@@ -27,13 +27,13 @@ type StopRequest struct {
 }
 
 type counterService struct {
-	logger log.Logger
+	app *pkg.App
 }
 
 // NewService creates a Start service backend.
-func NewService(logger log.Logger) Service {
+func NewService(app *pkg.App) Service {
 	return &counterService{
-		logger: logger,
+		app: app,
 	}
 }
 

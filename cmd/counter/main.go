@@ -20,7 +20,7 @@ func main() {
 
 	var s counter.Service
 	{
-		s = counter.NewService(app.Logger)
+		s = counter.NewService(app)
 		s = counter.LoggingMiddleware(app.Logger)(s)
 	}
 
