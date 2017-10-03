@@ -8,39 +8,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-
-	"github.com/gorilla/mux"
-
-	"github.com/go-kit/kit/log"
-	httptransport "github.com/go-kit/kit/transport/http"
 )
-
-// MakeHTTPHandler mounts all of the service endpoints into an http.Handler.
-// Useful in a counter server.
-func MakeHTTPHandler(s Service, logger log.Logger) http.Handler {
-	r := mux.NewRouter()
-	e := MakeServerEndpoints(s)
-	options := []httptransport.ServerOption{
-		httptransport.ServerErrorLogger(logger),
-		httptransport.ServerErrorEncoder(encodeError),
-	}
-
-	r.Methods("POST").Path("/start").Handler(httptransport.NewServer(
-		e.StartEndpoint,
-		decodeStartRequest,
-		encodeResponse,
-		options...,
-	))
-
-	r.Methods("POST").Path("/stop").Handler(httptransport.NewServer(
-		e.StopEndpoint,
-		decodeStopRequest,
-		encodeResponse,
-		options...,
-	))
-
-	return r
-}
 
 func decodeStartRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
 	var req StartRequest
@@ -57,7 +25,6 @@ func decodeStopRequest(_ context.Context, r *http.Request) (request interface{},
 	}
 	return req, nil
 }
-
 
 // errorer is implemented by all concrete response types that may contain
 // errors. It allows us to change the HTTP response code without needing to

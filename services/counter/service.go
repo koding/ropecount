@@ -13,18 +13,6 @@ type Service interface {
 	Stop(ctx context.Context, p StopRequest) (string, error)
 }
 
-// StartRequest represents a single Start request.
-type StartRequest struct {
-	Source   string `json:"source"`
-	Target   string `json:"target"`
-	FuncName string `json:"funcName"`
-}
-
-// StopRequest represents a single Stop request.
-type StopRequest struct {
-	Token string `json:"token"`
-}
-
 type counterService struct {
 	app *pkg.App
 }
@@ -36,7 +24,7 @@ func NewService(app *pkg.App) Service {
 	}
 }
 
-func (s *counterService) Start(ctx context.Context, p StartRequest) (string, error) {
+func (c *counterService) Start(ctx context.Context, p StartRequest) (string, error) {
 	// Create the Claims
 	claims := &pkg.JWTData{
 		Source:   p.Source,
@@ -49,29 +37,29 @@ func (s *counterService) Start(ctx context.Context, p StartRequest) (string, err
 		return "", err
 	}
 
-	s.app.Logger.Log("signedstring", tokenString)
+	c.app.Logger.Log("signedstring", tokenString)
 
-	claims2, err := pkg.ParseJWT(s.app.Logger, tokenString)
+	claims2, err := pkg.ParseJWT(c.app.Logger, tokenString)
 	if err != nil {
 		return "", err
 	}
 
-	s.app.Logger.Log("claims", claims2, "err", err)
+	c.app.Logger.Log("claims", claims2, "err", err)
 	return tokenString, nil
 }
 
-func (s *counterService) Stop(ctx context.Context, p StopRequest) (string, error) {
-	s.app.Logger.Log("signedstring", p.Token)
+func (c *counterService) Stop(ctx context.Context, p StopRequest) (string, error) {
+	c.app.Logger.Log("signedstring", p.Token)
 
-	claims, err := pkg.ParseJWT(s.app.Logger, p.Token)
+	claims, err := pkg.ParseJWT(c.app.Logger, p.Token)
 	if err != nil {
 		return "", err
 	}
 
 	dur := time.Now().UTC().Sub(claims.CreatedAt)
-	s.app.Logger.Log("took", dur.String())
+	c.app.Logger.Log("took", dur.String())
 
-	redisConn := s.app.MustGetRedis()
+	redisConn := c.app.MustGetRedis()
 	conn := redisConn.Pool().Get()
 	defer conn.Close()
 
@@ -81,15 +69,19 @@ func (s *counterService) Stop(ctx context.Context, p StopRequest) (string, error
 		return "", err
 	}
 
-	if _, err := conn.Do("INCRBY", "counter:src:"+claims.Source, int64(dur)); err != nil {
+	if _, err := conn.Do("SADD", "set:counter:src", claims.Source); err != nil {
 		return "", err
 	}
 
-	if _, err := conn.Do("INCRBY", "counter:tgt:"+claims.Target, int64(dur)); err != nil {
+	if _, err := conn.Do("SADD", "set:counter:tgt", claims.Target); err != nil {
 		return "", err
 	}
 
-	if _, err := conn.Do("INCRBY", "counter:fn:"+claims.FuncName, int64(dur)); err != nil {
+	if _, err := conn.Do("HINCRBY", "hset:counter:src:"+claims.Source, claims.FuncName, int64(dur)); err != nil {
+		return "", err
+	}
+
+	if _, err := conn.Do("HINCRBY", "hset:counter:tgt:"+claims.Target, claims.FuncName, int64(dur)); err != nil {
 		return "", err
 	}
 

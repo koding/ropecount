@@ -10,8 +10,8 @@ import (
 	httptransport "github.com/go-kit/kit/transport/http"
 )
 
-// MakeClientEndpoints returns an Endpoints for counter client.
-func MakeClientEndpoints(instance string) (Endpoints, error) {
+// MakeHTTPClientEndpoints returns an Endpoints for counter client.
+func MakeHTTPClientEndpoints(instance string, options ...httptransport.ClientOption) (Endpoints, error) {
 	if !strings.HasPrefix(instance, "http") {
 		instance = "http://" + instance
 	}
@@ -20,8 +20,6 @@ func MakeClientEndpoints(instance string) (Endpoints, error) {
 		return Endpoints{}, err
 	}
 	tgt.Path = ""
-
-	options := []httptransport.ClientOption{}
 
 	return Endpoints{
 		StartEndpoint: httptransport.NewClient("POST", tgt, encodeStartRequest, decodeStartResponse, options...).Endpoint(),

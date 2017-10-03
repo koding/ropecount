@@ -10,7 +10,7 @@ import (
 // Middleware describes a service (as opposed to endpoint) middleware.
 type Middleware func(Service) Service
 
-// LoggingMiddleware logs the incoming method, id and request latency data
+// LoggingMiddleware logs the incoming requests
 func LoggingMiddleware(logger log.Logger) Middleware {
 	return func(next Service) Service {
 		return &loggingMiddleware{
