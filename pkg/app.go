@@ -123,3 +123,19 @@ func (a *App) Listen(handler http.Handler) chan error {
 	a.Logger.Log("func", "http listen")
 	return errs
 }
+
+func (a *App) ErrorLog(keyvals ...interface{}) error {
+	return level.Error(a.Logger).Log(keyvals...)
+}
+
+func (a *App) WarnLog(keyvals ...interface{}) error {
+	return level.Warn(a.Logger).Log(keyvals...)
+}
+
+func (a *App) InfoLog(keyvals ...interface{}) error {
+	return level.Info(a.Logger).Log(keyvals...)
+}
+
+func (a *App) DebugLog(keyvals ...interface{}) error {
+	return level.Debug(a.Logger).Log(keyvals...)
+}
