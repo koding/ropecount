@@ -2,6 +2,7 @@ package counter
 
 import (
 	"context"
+	"strconv"
 	"time"
 
 	"github.com/koding/ropecount/pkg"
@@ -63,25 +64,30 @@ func (c *counterService) Stop(ctx context.Context, p StopRequest) (string, error
 	conn := redisConn.Pool().Get()
 	defer conn.Close()
 
+	redisConn.SetPrefix("ropecount")
 	// We dont need to DISCARD on error cases. Conn.Close already handles them.
 	// For futher info see pool.go/pooledConnection::Close()
 	if _, err := conn.Do("MULTI"); err != nil {
 		return "", err
 	}
 
-	if _, err := conn.Do("SADD", "set:counter:src", claims.Source); err != nil {
+	d := 5 * time.Minute // we only work in around 5 mins
+	segment := time.Now().UTC().Add(-(d / 2)).Round(d).Unix()
+	suffix := ":" + strconv.FormatInt(segment, 10)
+
+	if _, err := conn.Do("SADD", redisConn.AddPrefix("set:counter:src"+suffix), claims.Source); err != nil {
 		return "", err
 	}
 
-	if _, err := conn.Do("SADD", "set:counter:tgt", claims.Target); err != nil {
+	if _, err := conn.Do("SADD", redisConn.AddPrefix("set:counter:tgt"+suffix), claims.Target); err != nil {
 		return "", err
 	}
 
-	if _, err := conn.Do("HINCRBY", "hset:counter:src:"+claims.Source, claims.FuncName, int64(dur)); err != nil {
+	if _, err := conn.Do("HINCRBY", redisConn.AddPrefix("hset:counter:src"+suffix+":"+claims.Source), claims.FuncName, int64(dur)); err != nil {
 		return "", err
 	}
 
-	if _, err := conn.Do("HINCRBY", "hset:counter:tgt:"+claims.Target, claims.FuncName, int64(dur)); err != nil {
+	if _, err := conn.Do("HINCRBY", redisConn.AddPrefix("hset:counter:tgt:"+suffix+":"+claims.Target), claims.FuncName, int64(dur)); err != nil {
 		return "", err
 	}
 
