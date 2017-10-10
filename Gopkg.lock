@@ -68,10 +68,10 @@
   version = "v0.8.1"
 
 [[projects]]
-  branch = "options"
+  branch = "master"
   name = "github.com/koding/redis"
   packages = ["."]
-  revision = "cee969b1405e3dbe3ee5794c10f0129267440941"
+  revision = "e1d6d2cba04b85f1210b89c2fcf435399a68e26a"
 
 [[projects]]
   branch = "master"
@@ -88,6 +88,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "779c1b1732df41517f4bd06716954c6a798b7f5461c4b87a2962f76676a446db"
+  inputs-digest = "51f81d7a9a029f99149c22dfda96fb137d0b7e0765c75179cd1a693e70c09f3c"
   solver-name = "gps-cdcl"
   solver-version = 1
