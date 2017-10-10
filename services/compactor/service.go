@@ -157,7 +157,7 @@ func (c *compactorService) merge(redisConn *redis.RedisSession, source, target s
 
 	res, err := redisConn.Del(source)
 	if err != redis.ErrNil {
-		c.app.Logger.Log("msg", "we should be able to delete the counter here, but failed.", "err", err.Error())
+		c.app.Logger.Log("msg", "we should be able to delete the counter here, but failed.", "err", err)
 		return nil
 	}
 
