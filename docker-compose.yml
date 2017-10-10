@@ -13,7 +13,7 @@ services:
     extends: base
     ports:
     - "8080:8080"
-    command: /go/bin/counter --http.addr :8080
+    command: /go/bin/counter --http.addr :8080 --redis.addr redis:6379
     links:
     - redis
 
@@ -21,7 +21,7 @@ services:
     extends: base
     ports:
     - "8081:8081"
-    command: /go/bin/compactor --http.addr :8081
+    command: /go/bin/compactor --http.addr :8081 --redis.addr redis:6379
     links:
     - redis
 
@@ -29,7 +29,7 @@ services:
     extends: base
     ports:
     - "8083:8083"
-    command: /go/bin/persister --http.addr :8083
+    command: /go/bin/persister --http.addr :8083 --redis.addr redis:6379
     links:
     - redis
 
