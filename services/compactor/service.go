@@ -45,12 +45,24 @@ func (c *compactorService) Process(ctx context.Context, p ProcessRequest) error 
 	for tl.UnixNano() <= tr.UnixNano() {
 		c.app.InfoLog("time", tr.Format(time.RFC3339))
 
-		if err := c.process(redisConn, "src", tr); err != nil {
-			return err
-		}
-
-		if err := c.process(redisConn, "dst", tr); err != nil {
-			return err
+		for {
+			var srcErr, dstErr error
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			default:
+				srcErr = c.process(redisConn, "src", tr)
+				dstErr = c.process(redisConn, "dst", tr)
+			}
+			if srcErr == dstErr && srcErr == errNotFound {
+				break
+			}
+			if srcErr != nil && srcErr != errNotFound {
+				return srcErr
+			}
+			if dstErr != nil && dstErr != errNotFound {
+				return dstErr
+			}
 		}
 
 		tr = tr.Add(-d)
@@ -83,7 +95,7 @@ func (c *compactorService) process(redisConn *redis.RedisSession, directionSuffi
 		currentSegmentSuffix, hourlySegmentSuffix = generateSegmentSuffixes(directionSuffix, tr)
 		queueName                                 = "set:counter:" + currentSegmentSuffix
 	)
-
+	c.app.InfoLog("queue", queueName)
 	return c.withLock(redisConn, queueName, func(srcMember string) error {
 		source, target := generateHashKeys(currentSegmentSuffix, hourlySegmentSuffix, srcMember)
 		return c.merge(redisConn, source, target)
