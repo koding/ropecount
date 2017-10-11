@@ -2,6 +2,7 @@ package compactor
 
 import (
 	"context"
+	"errors"
 	"strconv"
 	"time"
 
@@ -60,6 +61,8 @@ func (c *compactorService) Process(ctx context.Context, p ProcessRequest) error 
 
 const seperator = ":"
 
+var errNotFound = errors.New("no item to process")
+
 func generateSegmentSuffixes(directionSuffix string, tr time.Time) (current string, hourly string) {
 	current = directionSuffix + seperator + strconv.FormatInt(tr.Unix(), 10)
 	hourly = directionSuffix + seperator + strconv.FormatInt(tr.Add(-(time.Hour/2)).Round(time.Hour).Unix(), 10)
@@ -92,7 +95,7 @@ func (c *compactorService) process(redisConn *redis.RedisSession, directionSuffi
 func (c *compactorService) withLock(redisConn *redis.RedisSession, queueName string, fn func(srcMember string) error) error {
 	srcMember, err := redisConn.RandomSetMember(queueName)
 	if err == redis.ErrNil {
-		return nil // we dont have any, so nothing to do.
+		return errNotFound // we dont have any, so nothing to do.
 	}
 
 	if err != nil {

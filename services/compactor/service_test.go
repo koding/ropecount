@@ -254,7 +254,7 @@ func Test_compactorService_withLock(t *testing.T) {
 						return nil
 					},
 				},
-				wantErr: false,
+				wantErr: true,
 			},
 			{
 				name: "empty queue should not call the callback",
@@ -284,7 +284,7 @@ func Test_compactorService_withLock(t *testing.T) {
 					queueName += "_processing"
 					checkQueueLength(queueName, 0)
 				},
-				wantErr: false,
+				wantErr: true,
 			},
 			{
 				name: "when callback fails, item should be moved back to origin queue",
