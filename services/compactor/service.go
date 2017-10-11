@@ -60,21 +60,29 @@ func (c *compactorService) Process(ctx context.Context, p ProcessRequest) error 
 
 const seperator = ":"
 
+func generateSegmentSuffixes(directionSuffix string, tr time.Time) (current string, hourly string) {
+	current = directionSuffix + seperator + strconv.FormatInt(tr.Unix(), 10)
+	hourly = directionSuffix + seperator + strconv.FormatInt(tr.Add(-(time.Hour/2)).Round(time.Hour).Unix(), 10)
+	return current, hourly
+}
+
+func generateHashKeys(currentSuffix, hourlySuffix, srcMember string) (source string, target string) {
+	currentHashSetPrefix := "hset:counter:" + currentSuffix + seperator
+	hourlyHashSetPrefix := "hset:counter:" + hourlySuffix + seperator
+
+	source = currentHashSetPrefix + srcMember
+	target = hourlyHashSetPrefix + srcMember
+	return source, target
+}
+
 func (c *compactorService) process(redisConn *redis.RedisSession, directionSuffix string, tr time.Time) error {
 	var (
-		currentSegmentSuffix = directionSuffix + seperator + strconv.FormatInt(tr.Unix(), 10)
-		hourlySegmentSuffix  = directionSuffix + seperator + strconv.FormatInt(tr.Add(-(time.Hour/2)).Round(time.Hour).Unix(), 10)
-
-		currentHashSetPrefix = "hset:counter:" + currentSegmentSuffix + seperator
-		hourlyHashSetPrefix  = "hset:counter:" + hourlySegmentSuffix + seperator
-		queueName            = "set:counter:" + currentSegmentSuffix
+		currentSegmentSuffix, hourlySegmentSuffix = generateSegmentSuffixes(directionSuffix, tr)
+		queueName                                 = "set:counter:" + currentSegmentSuffix
 	)
 
 	return c.withLock(redisConn, queueName, func(srcMember string) error {
-		var (
-			source = currentHashSetPrefix + srcMember
-			target = hourlyHashSetPrefix + srcMember
-		)
+		source, target := generateHashKeys(currentSegmentSuffix, hourlySegmentSuffix, srcMember)
 		return c.merge(redisConn, source, target)
 	})
 }

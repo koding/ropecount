@@ -367,3 +367,102 @@ func Test_compactorService_withLock(t *testing.T) {
 		}
 	})
 }
+
+func Test_generateHashKeys(t *testing.T) {
+	type args struct {
+		currentSuffix string
+		hourlySuffix  string
+		srcMember     string
+	}
+	tests := []struct {
+		name       string
+		args       args
+		wantSource string
+		wantTarget string
+	}{
+		{
+			name: "empty keys",
+			args: args{
+				currentSuffix: "",
+				hourlySuffix:  "",
+				srcMember:     "",
+			},
+			wantSource: "hset:counter::",
+			wantTarget: "hset:counter::",
+		},
+		{
+			name: "with valid keys",
+			args: args{
+				currentSuffix: "currentSuffix",
+				hourlySuffix:  "hourlySuffix",
+				srcMember:     "member",
+			},
+			wantSource: "hset:counter:currentSuffix:member",
+			wantTarget: "hset:counter:hourlySuffix:member",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotSource, gotTarget := generateHashKeys(tt.args.currentSuffix, tt.args.hourlySuffix, tt.args.srcMember)
+			if gotSource != tt.wantSource {
+				t.Errorf("generateHashKeys() gotSource = %v, want %v", gotSource, tt.wantSource)
+			}
+			if gotTarget != tt.wantTarget {
+				t.Errorf("generateHashKeys() gotTarget = %v, want %v", gotTarget, tt.wantTarget)
+			}
+		})
+	}
+}
+
+func Test_generateSegmentSuffixes(t *testing.T) {
+	type args struct {
+		directionSuffix string
+		tr              time.Time
+	}
+	tests := []struct {
+		name        string
+		args        args
+		wantCurrent string
+		wantHourly  string
+	}{
+		{
+			name: "hour in the middle",
+			args: args{
+				directionSuffix: "src",
+				tr:              time.Date(2017, time.March, 7, 06, 30, 0, 0, time.UTC),
+			},
+			wantCurrent: "src:1488868200",
+			wantHourly:  "src:1488866400",
+		},
+
+		{
+			name: "hour on the greater part",
+			args: args{
+				directionSuffix: "src",
+				tr:              time.Date(2017, time.March, 7, 06, 45, 0, 0, time.UTC),
+			},
+			wantCurrent: "src:1488869100",
+			wantHourly:  "src:1488866400",
+		},
+		{
+			name: "5 min on the smaller part - should not be rounded to downward since this function accepts the values as is",
+			args: args{
+				directionSuffix: "src",
+				tr:              time.Date(2017, time.March, 7, 06, 41, 0, 0, time.UTC),
+			},
+			wantCurrent: "src:1488868860",
+			wantHourly:  "src:1488866400",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotCurrent, gotHourly := generateSegmentSuffixes(tt.args.directionSuffix, tt.args.tr)
+			if gotCurrent != tt.wantCurrent {
+				t.Errorf("generateSegmentSuffixes() gotCurrent = %v, want %v", gotCurrent, tt.wantCurrent)
+			}
+			if gotHourly != tt.wantHourly {
+				t.Errorf("generateSegmentSuffixes() gotHourly = %v, want %v", gotHourly, tt.wantHourly)
+			}
+		})
+	}
+}
