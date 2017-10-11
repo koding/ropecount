@@ -92,11 +92,19 @@ func dieIfError(logger log.Logger, err error, name string) {
 
 // AddRedisConf adds redis conf onto flags.
 func AddRedisConf(conf *flag.FlagSet) *string {
+	if f := conf.Lookup(ConfRedisAddr); f != nil {
+		s := f.Value.String()
+		return &s
+	}
 	return conf.String(ConfRedisAddr, "localhost:6379", "Redis server address")
 }
 
 // AddHTTPConf adds redis conf onto flags.
 func AddHTTPConf(conf *flag.FlagSet) *string {
+	if f := conf.Lookup(ConfHTTPAddr); f != nil {
+		s := f.Value.String()
+		return &s
+	}
 	return conf.String(ConfHTTPAddr, ":8080", "HTTP listen address")
 }
 
