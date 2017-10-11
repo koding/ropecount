@@ -466,3 +466,85 @@ func Test_generateSegmentSuffixes(t *testing.T) {
 		})
 	}
 }
+
+func Test_compactorService_process(t *testing.T) {
+	withApp(func(app *pkg.App) {
+		var redisConn *redis.RedisSession
+		{
+			redisConn = app.MustGetRedis()
+			rand.Seed(time.Now().UnixNano())
+			prefix := strconv.Itoa(rand.Int())
+			redisConn.SetPrefix(prefix)
+		}
+
+		type fields struct {
+			app *pkg.App
+		}
+		type args struct {
+			redisConn       *redis.RedisSession
+			directionSuffix string
+			tr              time.Time
+		}
+		tests := []struct {
+			name     string
+			fields   fields
+			args     args
+			wantErr  bool
+			beforeOp func()
+			afterOp  func()
+		}{
+			{
+				name: "empty call",
+				fields: fields{
+					app: app,
+				},
+				args: args{
+					redisConn:       redisConn,
+					directionSuffix: "src",
+					tr:              time.Now(), // not important
+				},
+				wantErr: true, // should get no item err
+			},
+			{
+				name: "on multiple items, should only process one of them",
+				fields: fields{
+					app: app,
+				},
+				args: args{
+					redisConn:       redisConn,
+					directionSuffix: "src",
+					tr:              time.Date(2017, time.March, 7, 06, 30, 0, 0, time.UTC),
+				},
+				wantErr: false,
+				beforeOp: func() {
+					queueName := "set:counter:src:1488868200"
+					if _, err := redisConn.AddSetMembers(queueName, "val1", "val2"); err != nil {
+						t.Errorf("redisConn.AddSetMembers(queueName, val) error = %v", err)
+					}
+				},
+				afterOp: func() {
+					queueName := "set:counter:src:1488868200"
+					checkQueueLength(t, redisConn, queueName, 1)
+					queueName += "_processing"
+					checkQueueLength(t, redisConn, queueName, 0)
+				},
+			},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				c := &compactorService{
+					app: tt.fields.app,
+				}
+				if tt.beforeOp != nil {
+					tt.beforeOp()
+				}
+				if err := c.process(tt.args.redisConn, tt.args.directionSuffix, tt.args.tr); (err != nil) != tt.wantErr {
+					t.Errorf("compactorService.process() error = %v, wantErr %v", err, tt.wantErr)
+				}
+				if tt.afterOp != nil {
+					tt.afterOp()
+				}
+			})
+		}
+	})
+}
