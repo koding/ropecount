@@ -11,24 +11,30 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/koding/redis"
+	"github.com/koding/ropecount/pkg/mongodb"
 )
 
 // App is the context for services.
 type App struct {
 	Logger log.Logger
 	redis  *redis.RedisSession
+	mongo  *mongodb.MongoDB
 
 	name      string
 	redisAddr *string
 	httpAddr  *string
+	mongoAddr *string
 }
 
 const (
-	// ConfHTTPAddr holds the flag name for http addres
+	// ConfHTTPAddr holds the flag name for http address
 	ConfHTTPAddr = "http.addr"
 
-	// ConfRedisAddr holds the flag name for redis server addres
+	// ConfRedisAddr holds the flag name for redis server address
 	ConfRedisAddr = "redis.addr"
+
+	// ConfMongoAddr holds the flag name for mongodb server address
+	ConfMongoAddr = "mongo.addr"
 )
 
 // NewApp creates a new App context for the system.
@@ -62,12 +68,22 @@ func NewApp(name string, conf *flag.FlagSet) *App {
 			httpAddr := httpFlag.Value.String()
 			app.httpAddr = &httpAddr
 		}
+		if mongoFlag := conf.Lookup(ConfMongoAddr); mongoFlag != nil {
+			mongoAddr := mongoFlag.Value.String()
+			app.mongoAddr = &mongoAddr
+		}
 	}
 
 	{ // initialize if redis is given as config
 		if app.redisAddr != nil {
 			app.redis, err = NewRedisPool(*app.redisAddr)
 			dieIfError(logger, err, "redisconn")
+		}
+	}
+	{ // initialize if mongo is given as config
+		if app.mongoAddr != nil {
+			app.mongo, err = mongodb.New(*app.mongoAddr)
+			dieIfError(logger, err, "mongoconn")
 		}
 	}
 
@@ -81,6 +97,15 @@ func (a *App) MustGetRedis() *redis.RedisSession {
 		panic("redis is not initialized yet.")
 	}
 	return a.redis
+}
+
+// MustGetMongo returns the Mongo if it is already initialized. If the config is
+// not given or the connection is not established yet, panics.
+func (a *App) MustGetMongo() *mongodb.MongoDB {
+	if a.mongo == nil {
+		panic("mongo is not initialized yet.")
+	}
+	return a.mongo
 }
 
 func dieIfError(logger log.Logger, err error, name string) {
@@ -97,6 +122,15 @@ func AddRedisConf(conf *flag.FlagSet) *string {
 		return &s
 	}
 	return conf.String(ConfRedisAddr, "localhost:6379", "Redis server address")
+}
+
+// AddMongoConf adds redis conf onto flags.
+func AddMongoConf(conf *flag.FlagSet) *string {
+	if f := conf.Lookup(ConfMongoAddr); f != nil {
+		s := f.Value.String()
+		return &s
+	}
+	return conf.String(ConfMongoAddr, "localhost:27017", "Mongo server address")
 }
 
 // AddHTTPConf adds redis conf onto flags.
