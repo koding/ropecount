@@ -3,7 +3,6 @@ package compactor
 import (
 	"context"
 	"errors"
-	"strconv"
 	"time"
 
 	redigo "github.com/garyburd/redigo/redis"
@@ -31,12 +30,7 @@ func NewService(app *pkg.App) Service {
 func (c *compactorService) Process(ctx context.Context, p ProcessRequest) error {
 	c.app.Logger.Log("starttime", p.StartAt.Format(time.RFC3339))
 
-	d := 5 * time.Minute // we only work in around 5 mins
-	t := p.StartAt
-
-	// We compact the values that are set 2*d duration before.
-	// d/2 is required for time.Round(d). It rounds up after the halfway values.
-	tr := t.Add(-d * 2).Add(-(d / 2)).Round(d)
+	tr := pkg.GetLastProcessibleSegment(p.StartAt)
 	tl := tr.Add(-time.Hour) // / process till this time
 
 	redisConn := c.app.MustGetRedis()
@@ -45,14 +39,15 @@ func (c *compactorService) Process(ctx context.Context, p ProcessRequest) error 
 	for tl.UnixNano() <= tr.UnixNano() {
 		c.app.InfoLog("time", tr.Format(time.RFC3339))
 
+		keyNames := pkg.GenerateKeyNames(tr)
 		for {
 			var srcErr, dstErr error
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
 			default:
-				srcErr = c.process(redisConn, "src", tr)
-				dstErr = c.process(redisConn, "dst", tr)
+				srcErr = c.process(redisConn, keyNames.Src, tr)
+				dstErr = c.process(redisConn, keyNames.Dst, tr)
 			}
 			if srcErr == dstErr && srcErr == errNotFound {
 				break
@@ -65,44 +60,25 @@ func (c *compactorService) Process(ctx context.Context, p ProcessRequest) error 
 			}
 		}
 
-		tr = tr.Add(-d)
+		tr = tr.Add(-pkg.SegmentDur)
 	}
 
 	return nil
 }
 
-const seperator = ":"
-
 var errNotFound = errors.New("no item to process")
 
-func generateSegmentSuffixes(directionSuffix string, tr time.Time) (current string, hourly string) {
-	current = directionSuffix + seperator + strconv.FormatInt(tr.Unix(), 10)
-	hourly = directionSuffix + seperator + strconv.FormatInt(tr.Add(-(time.Hour/2)).Round(time.Hour).Unix(), 10)
-	return current, hourly
-}
+func (c *compactorService) process(redisConn *redis.RedisSession, keyNames pkg.KeyNames, tr time.Time) error {
 
-func generateHashKeys(currentSuffix, hourlySuffix, srcMember string) (source string, target string) {
-	currentHashSetPrefix := "hset:counter:" + currentSuffix + seperator
-	hourlyHashSetPrefix := "hset:counter:" + hourlySuffix + seperator
+	c.app.InfoLog("current_counter_queue", keyNames.CurrentCounterSet)
 
-	source = currentHashSetPrefix + srcMember
-	target = hourlyHashSetPrefix + srcMember
-	return source, target
-}
-
-func (c *compactorService) process(redisConn *redis.RedisSession, directionSuffix string, tr time.Time) error {
-	var (
-		currentSegmentSuffix, hourlySegmentSuffix = generateSegmentSuffixes(directionSuffix, tr)
-		queueName                                 = "set:counter:" + currentSegmentSuffix
-	)
-	c.app.InfoLog("queue", queueName)
-	return c.withLock(redisConn, queueName, func(srcMember string) error {
-		source, target := generateHashKeys(currentSegmentSuffix, hourlySegmentSuffix, srcMember)
+	return c.withLock(redisConn, keyNames.CurrentCounterSet, func(srcMember string) error {
+		source, target := keyNames.HashSetNames(srcMember)
 		return c.merge(redisConn, source, target)
 	})
 }
 
-// withLock gets an item from the current segment's item set and passes it to
+// withLock gets an item from the current segment's item set and  passes it to
 // the given processor function. After getting a response from the processor a successfull
 func (c *compactorService) withLock(redisConn *redis.RedisSession, queueName string, fn func(srcMember string) error) error {
 	srcMember, err := redisConn.RandomSetMember(queueName)
