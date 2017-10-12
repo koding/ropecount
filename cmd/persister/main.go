@@ -20,7 +20,7 @@ func main() {
 
 	var s persister.Service
 	{
-		s = persister.NewInmemService(app.Logger)
+		s = persister.NewService(app)
 		s = persister.LoggingMiddleware(app.Logger)(s)
 	}
 
