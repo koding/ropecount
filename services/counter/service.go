@@ -18,7 +18,7 @@ type counterService struct {
 	app *pkg.App
 }
 
-// NewService creates a Start service backend.
+// NewService creates a Counter service backend.
 func NewService(app *pkg.App) Service {
 	return &counterService{
 		app: app,
