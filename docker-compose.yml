@@ -16,6 +16,7 @@ services:
     command: /go/bin/counter --http.addr :8080 --redis.addr redis:6379
     links:
     - redis
+    - mongo
 
   compactor:
     extends: base
@@ -24,6 +25,7 @@ services:
     command: /go/bin/compactor --http.addr :8081 --redis.addr redis:6379
     links:
     - redis
+    - mongo
 
   persister:
     extends: base
@@ -32,11 +34,17 @@ services:
     command: /go/bin/persister --http.addr :8083 --redis.addr redis:6379
     links:
     - redis
+    - mongo
 
   redis:
     image: redis
     ports:
       - "6379:6379"
+
+  mongo:
+    image: mongo:3.0.15
+    ports:
+      - "27017:27017"
 
 volumes:
   logvolume01: {}
