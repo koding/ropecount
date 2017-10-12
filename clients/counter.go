@@ -1,7 +1,4 @@
-// Package client provides a counter client based on a predefined Consul
-// service name and relevant tags. Users must only provide the address of a
-// Consul server.
-package client
+package clients
 
 import (
 	"io"
@@ -17,10 +14,10 @@ import (
 	"github.com/koding/ropecount/services/counter"
 )
 
-// New returns a service that's load-balanced over instances of counter found
-// in the provided Consul server. The mechanism of looking up counter
+// NewCounter returns a service that's load-balanced over instances of counter
+// found in the provided Consul server. The mechanism of looking up counter
 // instances in Consul is hard-coded into the client.
-func New(consulAddr string, logger log.Logger) (counter.Service, error) {
+func NewCounter(consulAddr string, logger log.Logger) (counter.Service, error) {
 	apiclient, err := consulapi.NewClient(&consulapi.Config{
 		Address: consulAddr,
 	})
@@ -44,14 +41,14 @@ func New(consulAddr string, logger log.Logger) (counter.Service, error) {
 		endpoints counter.Endpoints
 	)
 	{
-		factory := factoryFor(counter.MakeStartEndpoint)
+		factory := factoryForCounter(counter.MakeStartEndpoint)
 		endpointer := sd.NewEndpointer(instancer, factory, logger)
 		balancer := lb.NewRoundRobin(endpointer)
 		retry := lb.Retry(retryMax, retryTimeout, balancer)
 		endpoints.StartEndpoint = retry
 	}
 	{
-		factory := factoryFor(counter.MakeStopEndpoint)
+		factory := factoryForCounter(counter.MakeStopEndpoint)
 		endpointer := sd.NewEndpointer(instancer, factory, logger)
 		balancer := lb.NewRoundRobin(endpointer)
 		retry := lb.Retry(retryMax, retryTimeout, balancer)
@@ -61,7 +58,7 @@ func New(consulAddr string, logger log.Logger) (counter.Service, error) {
 	return endpoints, nil
 }
 
-func factoryFor(makeEndpoint func(counter.Service) endpoint.Endpoint) sd.Factory {
+func factoryForCounter(makeEndpoint func(counter.Service) endpoint.Endpoint) sd.Factory {
 	return func(instance string) (endpoint.Endpoint, io.Closer, error) {
 		service, err := counter.MakeHTTPClientEndpoints(instance)
 		if err != nil {

@@ -1,7 +1,4 @@
-// Package client provides a compactor client based on a predefined Consul
-// service name and relevant tags. Users must only provide the address of a
-// Consul server.
-package client
+package clients
 
 import (
 	"io"
@@ -14,13 +11,13 @@ import (
 	"github.com/go-kit/kit/sd"
 	"github.com/go-kit/kit/sd/consul"
 	"github.com/go-kit/kit/sd/lb"
-	"github.com/koding/ropecount/services/compactor"
+	"github.com/koding/ropecount/services/persister"
 )
 
-// New returns a service that's load-balanced over instances of compactor found
-// in the provided Consul server. The mechanism of looking up compactor
-// instances in Consul is hard-coded into the client.
-func New(consulAddr string, logger log.Logger) (compactor.Service, error) {
+// NewPersister returns a service that's load-balanced over instances of
+// persister found in the provided Consul server. The mechanism of looking up
+// persister instances in Consul is hard-coded into the client.
+func NewPersister(consulAddr string, logger log.Logger) (persister.Service, error) {
 	apiclient, err := consulapi.NewClient(&consulapi.Config{
 		Address: consulAddr,
 	})
@@ -28,10 +25,10 @@ func New(consulAddr string, logger log.Logger) (compactor.Service, error) {
 		return nil, err
 	}
 
-	// As the implementer of compactor, we declare and enforce these
-	// parameters for all of the compactor consumers.
+	// As the implementer of persister, we declare and enforce these
+	// parameters for all of the persister consumers.
 	var (
-		consulService = "compactor"
+		consulService = "persister"
 		consulTags    = []string{"prod"}
 		passingOnly   = true
 		retryMax      = 3
@@ -41,10 +38,10 @@ func New(consulAddr string, logger log.Logger) (compactor.Service, error) {
 	var (
 		sdclient  = consul.NewClient(apiclient)
 		instancer = consul.NewInstancer(sdclient, logger, consulService, consulTags, passingOnly)
-		endpoints compactor.Endpoints
+		endpoints persister.Endpoints
 	)
 	{
-		factory := factoryFor(compactor.MakeProcessEndpoint)
+		factory := factoryForPersister(persister.MakeProcessEndpoint)
 		endpointer := sd.NewEndpointer(instancer, factory, logger)
 		balancer := lb.NewRoundRobin(endpointer)
 		retry := lb.Retry(retryMax, retryTimeout, balancer)
@@ -54,9 +51,9 @@ func New(consulAddr string, logger log.Logger) (compactor.Service, error) {
 	return endpoints, nil
 }
 
-func factoryFor(makeEndpoint func(compactor.Service) endpoint.Endpoint) sd.Factory {
+func factoryForPersister(makeEndpoint func(persister.Service) endpoint.Endpoint) sd.Factory {
 	return func(instance string) (endpoint.Endpoint, io.Closer, error) {
-		service, err := compactor.MakeHTTPClientEndpoints(instance)
+		service, err := persister.MakeClientEndpoints(instance)
 		if err != nil {
 			return nil, nil, err
 		}
