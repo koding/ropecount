@@ -2,11 +2,13 @@ package pkg
 
 import (
 	"strconv"
+	"strings"
 	"time"
 )
 
 const (
-	SegmentDur = 5 * time.Minute // we only work in around 5 mins
+	// SegmentDur specifies the duration for work segments
+	SegmentDur = 5 * time.Minute
 	seperator  = ":"
 )
 
@@ -20,8 +22,6 @@ type AllKeys struct {
 type KeyNames struct {
 	CurrentCounterSet  string
 	CurrentCounterHSet string
-	HourlyCounterSet   string
-	HourlyCounterHSet  string
 }
 
 // GetCurrentSegment returns the current segment's time
@@ -43,29 +43,47 @@ func GenerateKeyNames(tr time.Time) *AllKeys {
 		Src: KeyNames{},
 	}
 
-	k.Src.CurrentCounterSet, k.Src.HourlyCounterSet = generateSegmentPrefixes("set:counter:src", tr)
-	k.Src.CurrentCounterHSet, k.Src.HourlyCounterHSet = generateSegmentPrefixes("hset:counter:src", tr)
-	k.Dst.CurrentCounterSet, k.Dst.HourlyCounterSet = generateSegmentPrefixes("set:counter:dst", tr)
-	k.Dst.CurrentCounterHSet, k.Dst.HourlyCounterHSet = generateSegmentPrefixes("hset:counter:dst", tr)
-
+	k.Src.CurrentCounterSet = generateSegmentPrefix("set:counter:src", tr)
+	k.Src.CurrentCounterHSet = generateSegmentPrefix("hset:counter:src", tr)
+	k.Dst.CurrentCounterSet = generateSegmentPrefix("set:counter:dst", tr)
+	k.Dst.CurrentCounterHSet = generateSegmentPrefix("hset:counter:dst", tr)
 	return k
 }
 
-// HashSetNames combines the prefix and the srcMember
-func (k *KeyNames) HashSetNames(srcMember string) (string, string) {
-	var (
-		current = k.CurrentCounterHSet + seperator + srcMember
-		hourly  = k.HourlyCounterHSet + seperator + srcMember
-	)
-
-	return current, hourly
+// HashSetName combines the prefix and the srcMember
+func (k *KeyNames) HashSetName(srcMember string) string {
+	return k.CurrentCounterHSet + seperator + srcMember
 }
 
-func generateSegmentPrefixes(directionSuffix string, tr time.Time) (current string, hourly string) {
-	var (
-		currentSuffix = directionSuffix + seperator + strconv.FormatInt(tr.Unix(), 10)
-		hourlySuffix  = directionSuffix + seperator + strconv.FormatInt(tr.Add(-(time.Hour/2)).Round(time.Hour).Unix(), 10)
-	)
+func generateSegmentPrefix(directionSuffix string, tr time.Time) string {
+	return directionSuffix + seperator + strconv.FormatInt(tr.Unix(), 10)
+}
 
-	return currentSuffix, hourlySuffix
+// ParsedKeyName holds the parts of a key as separate entities
+type ParsedKeyName struct {
+	Type       string
+	WorkerName string
+	Direction  string
+	Segment    string
+	Name       string
+}
+
+// ParseKeyName parses the given key.
+func ParseKeyName(s string) *ParsedKeyName {
+	parts := strings.Split(s, seperator)
+	if len(parts) != 4 && len(parts) != 5 {
+		panic("key names should be consisted of either 4 or 5 parts")
+	}
+
+	pk := &ParsedKeyName{
+		Type:       parts[0],
+		WorkerName: parts[1],
+		Direction:  parts[2],
+		Segment:    parts[3],
+	}
+	if len(parts) == 5 {
+		pk.Name = parts[4]
+	}
+
+	return pk
 }
