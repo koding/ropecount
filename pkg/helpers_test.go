@@ -20,7 +20,6 @@ func TestGenerateKeyNames(t *testing.T) {
 			args: args{
 				tr: time.Date(2017, time.March, 7, 06, 30, 0, 0, time.UTC),
 			},
-
 			want: &AllKeys{
 				Src: KeyNames{
 					CurrentCounterSet:  "set:counter:src:1488868200",

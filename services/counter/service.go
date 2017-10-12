@@ -65,8 +65,8 @@ func (c *counterService) Stop(ctx context.Context, p StopRequest) (string, error
 
 	segment := pkg.GetCurrentSegment()
 	keyNames := pkg.GenerateKeyNames(segment)
-	currentSrcHSet, _ := keyNames.Src.HashSetNames(claims.Source)
-	currentDstHSet, _ := keyNames.Dst.HashSetNames(claims.Target)
+	currentSrcHSet := keyNames.Src.HashSetName(claims.Source)
+	currentDstHSet := keyNames.Dst.HashSetName(claims.Target)
 
 	redisConn.SetPrefix("ropecount")
 	// We dont need to DISCARD on error cases. Conn.Close already handles them.
