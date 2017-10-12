@@ -15,6 +15,7 @@ func main() {
 
 	pkg.AddHTTPConf(conf)
 	pkg.AddRedisConf(conf)
+	pkg.AddMongoConf(conf)
 
 	app := pkg.NewApp(name, conf)
 

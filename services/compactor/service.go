@@ -8,6 +8,7 @@ import (
 	redigo "github.com/garyburd/redigo/redis"
 	"github.com/koding/redis"
 	"github.com/koding/ropecount/pkg"
+	"github.com/koding/ropecount/pkg/mongodb"
 )
 
 // Service is a simple interface for compactor operations.
@@ -69,12 +70,10 @@ func (c *compactorService) Process(ctx context.Context, p ProcessRequest) error 
 var errNotFound = errors.New("no item to process")
 
 func (c *compactorService) process(redisConn *redis.RedisSession, keyNames pkg.KeyNames, tr time.Time) error {
-
 	c.app.InfoLog("current_counter_queue", keyNames.CurrentCounterSet)
-
 	return c.withLock(redisConn, keyNames.CurrentCounterSet, func(srcMember string) error {
-		source, target := keyNames.HashSetNames(srcMember)
-		return c.merge(redisConn, source, target)
+		source := keyNames.HashSetName(srcMember)
+		return c.merge(redisConn, source)
 	})
 }
 
@@ -135,7 +134,7 @@ func (c *compactorService) withLock(redisConn *redis.RedisSession, queueName str
 
 // merge merges the source hash map values to the target, then deletes the
 // source hash map from the server.
-func (c *compactorService) merge(redisConn *redis.RedisSession, source, target string) error {
+func (c *compactorService) merge(redisConn *redis.RedisSession, source string) error {
 	fns, err := redigo.Int64Map(redisConn.HashGetAll(source))
 	if err == redis.ErrNil {
 		c.app.ErrorLog("msg", "item was in the queue but the corresponding values does not exist as hash map")
@@ -150,7 +149,7 @@ func (c *compactorService) merge(redisConn *redis.RedisSession, source, target s
 		return nil
 	}
 
-	if err = c.incrementMapValues(redisConn, target, fns); err != nil {
+	if err = c.incrementMapValues(source, fns); err != nil {
 		return err
 	}
 
@@ -171,22 +170,19 @@ func (c *compactorService) merge(redisConn *redis.RedisSession, source, target s
 	return nil
 }
 
-func (c *compactorService) incrementMapValues(redisConn *redis.RedisSession, target string, fns map[string]int64) error {
-	conn := redisConn.Pool().Get()
-	defer conn.Close()
+func (c *compactorService) incrementMapValues(source string, fns map[string]int64) error {
+	mongo := c.app.MustGetMongo()
+	parsedKey := pkg.ParseKeyName(source)
 
-	// We dont need to DISCARD on error cases. Conn.Close already handles them.
-	// For futher info see pool.go/pooledConnection::Close()
-	if _, err := conn.Do("MULTI"); err != nil {
-		return err
+	if parsedKey.Name == "" {
+		return errors.New("name should be set")
 	}
 
-	for fn, val := range fns {
-		if _, err := conn.Do("HINCRBY", redisConn.AddPrefix(target), fn, val); err != nil {
-			return err
-		}
-	}
-
-	_, err := conn.Do("EXEC")
-	return err
+	return mongodb.InsertCompaction(
+		mongo,
+		parsedKey.Name,
+		parsedKey.Direction,
+		parsedKey.Segment,
+		fns,
+	)
 }

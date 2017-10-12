@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	redigo "github.com/garyburd/redigo/redis"
 	"github.com/koding/redis"
 	"github.com/koding/ropecount/pkg"
+	"github.com/koding/ropecount/pkg/mongodb"
 )
 
 func withApp(fn func(app *pkg.App)) {
@@ -20,7 +20,7 @@ func withApp(fn func(app *pkg.App)) {
 
 	pkg.AddHTTPConf(conf)
 	pkg.AddRedisConf(conf)
-
+	pkg.AddMongoConf(conf)
 	app := pkg.NewApp(name, conf)
 	fn(app)
 }
@@ -40,9 +40,10 @@ func Test_compactorService_incrementMapValues(t *testing.T) {
 		}
 		type args struct {
 			redisConn *redis.RedisSession
-			target    string
+			source    string
 			fns       map[string]int64
 		}
+		source := "hset:counter:src:1488868203:cihangir"
 		tests := []struct {
 			name    string
 			fields  fields
@@ -56,7 +57,7 @@ func Test_compactorService_incrementMapValues(t *testing.T) {
 				},
 				args: args{
 					redisConn: redisConn,
-					target:    "my_test_hash_bare_call",
+					source:    source,
 					fns: map[string]int64{
 						"key1": 1,
 						"key2": 2,
@@ -72,10 +73,10 @@ func Test_compactorService_incrementMapValues(t *testing.T) {
 				},
 				args: args{
 					redisConn: redisConn,
-					target:    "my_test_hash_empty_call",
+					source:    source,
 					fns:       map[string]int64{},
 				},
-				wantErr: false,
+				wantErr: true,
 			},
 		}
 
@@ -84,13 +85,18 @@ func Test_compactorService_incrementMapValues(t *testing.T) {
 				c := &compactorService{
 					app: tt.fields.app,
 				}
-				if err := c.incrementMapValues(tt.args.redisConn, tt.args.target, tt.args.fns); (err != nil) != tt.wantErr {
+				if err := c.incrementMapValues(tt.args.source, tt.args.fns); (err != nil) != tt.wantErr {
 					t.Errorf("compactorService.incrementMapValues() error = %v, wantErr %v", err, tt.wantErr)
 				}
+				
+				if tt.wantErr {
+					return
+				}
 
-				fns, err := redigo.Int64Map(redisConn.HashGetAll(tt.args.target))
+				parsedKeys := pkg.ParseKeyName(tt.args.source)
+				fns, err := mongodb.GetCompaction(app.MustGetMongo(), parsedKeys.Name, parsedKeys.Direction, parsedKeys.Segment)
 				if err != nil {
-					t.Errorf("redigo.Int64Map(redisConn.HashGetAll(tt.args.target)) error = %v", err)
+					t.Errorf("mongodb.GetCompaction() error = %v", err)
 				}
 
 				if len(fns) != len(tt.args.fns) {
@@ -103,8 +109,12 @@ func Test_compactorService_incrementMapValues(t *testing.T) {
 					}
 				}
 
-				if _, err := redisConn.Del(tt.args.target); err != nil {
-					t.Errorf("redisConn.Del(tt.args.target) error = %v", err)
+				if _, err := redisConn.Del(tt.args.source); err != nil {
+					t.Errorf("redisConn.Del(tt.args.source) error = %v", err)
+				}
+
+				if err := mongodb.DeleteCompaction(app.MustGetMongo(), parsedKeys.Name, parsedKeys.Direction, parsedKeys.Segment); err != nil {
+					t.Errorf("mongodb.DeleteCompaction() error = %v", err)
 				}
 			})
 		}
@@ -128,9 +138,8 @@ func Test_compactorService_merge(t *testing.T) {
 			redisConn  *redis.RedisSession
 			source     string
 			sourceVals map[string]interface{}
-			target     string
-			targetVals map[string]interface{}
 		}
+		source := "hset:counter:src:1488868201:cihangir"
 		tests := []struct {
 			name    string
 			fields  fields
@@ -145,21 +154,15 @@ func Test_compactorService_merge(t *testing.T) {
 				},
 				args: args{
 					redisConn: redisConn,
-					source:    "my_source",
+					source:    source,
 					sourceVals: map[string]interface{}{
 						"key1": 1,
 						"key2": 2,
 					},
-					target: "my_target",
-					targetVals: map[string]interface{}{
-						"key2": 2,
-						"key3": 3,
-					},
 				},
 				result: map[string]int64{
 					"key1": 1,
-					"key2": 4,
-					"key3": 3,
+					"key2": 2,
 				},
 				wantErr: false,
 			},
@@ -175,17 +178,14 @@ func Test_compactorService_merge(t *testing.T) {
 					t.Errorf("redisConn.HashMultipleSet(tt.args.source, tt.args.sourceVals) error = %v, wantErr %v", err, tt.wantErr)
 				}
 
-				if err := redisConn.HashMultipleSet(tt.args.target, tt.args.targetVals); err != nil {
-					t.Errorf("redisConn.HashMultipleSet(tt.args.source, tt.args.sourceVals) error = %v, wantErr %v", err, tt.wantErr)
-				}
-
-				if err := c.merge(tt.args.redisConn, tt.args.source, tt.args.target); (err != nil) != tt.wantErr {
+				if err := c.merge(tt.args.redisConn, tt.args.source); (err != nil) != tt.wantErr {
 					t.Errorf("compactorService.merge() error = %v, wantErr %v", err, tt.wantErr)
 				}
 
-				fns, err := redigo.Int64Map(redisConn.HashGetAll(tt.args.target))
+				parsedKeys := pkg.ParseKeyName(tt.args.source)
+				fns, err := mongodb.GetCompaction(app.MustGetMongo(), parsedKeys.Name, parsedKeys.Direction, parsedKeys.Segment)
 				if err != nil {
-					t.Errorf("redigo.Int64Map(redisConn.HashGetAll(tt.args.target)) error = %v", err)
+					t.Errorf("mongodb.GetCompaction() error = %v", err)
 				}
 
 				if len(fns) != len(tt.result) {
@@ -198,8 +198,12 @@ func Test_compactorService_merge(t *testing.T) {
 					}
 				}
 
-				if _, err := redisConn.Del(tt.args.source, tt.args.target); err != nil {
-					t.Errorf("redisConn.Del(tt.args.source, tt.args.target) error = %v", err)
+				if _, err := redisConn.Del(tt.args.source); err != nil {
+					t.Errorf("redisConn.Del(tt.args.source) error = %v", err)
+				}
+
+				if err := mongodb.DeleteCompaction(app.MustGetMongo(), parsedKeys.Name, parsedKeys.Direction, parsedKeys.Segment); err != nil {
+					t.Errorf("mongodb.DeleteCompaction() error = %v", err)
 				}
 			})
 		}
