@@ -22,16 +22,7 @@ services:
     extends: base
     ports:
     - "8081:8081"
-    command: /go/bin/compactor --http.addr :8081 --redis.addr redis:6379
-    links:
-    - redis
-    - mongo
-
-  persister:
-    extends: base
-    ports:
-    - "8083:8083"
-    command: /go/bin/persister --http.addr :8083 --redis.addr redis:6379
+    command: /go/bin/compactor --http.addr :8081 --redis.addr redis:6379 --mongo.addr "mongodb://mongo:27017"
     links:
     - redis
     - mongo
