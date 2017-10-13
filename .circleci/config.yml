@@ -25,6 +25,7 @@ jobs:
           name: Load Docker image layer cache
           command: |
             set +o pipefail
+            mkdir -p /caches/koding
             docker load -i /caches/koding/ropecount_base.tar | true
       - run:
           name: Build application Docker image
