@@ -1,0 +1,15 @@
+version: '2'
+services:
+  base:
+    build: .
+    image: koding/ropecount_base
+    volumes:
+    - .:/go/src/github.com/koding/ropecount
+    - logvolume01:/var/log
+
+  tester:
+    extends: base
+    command: go test ./...
+
+volumes:
+  logvolume01: {}
