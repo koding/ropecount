@@ -2,9 +2,7 @@ package mongodb
 
 import (
 	"errors"
-	"fmt"
 
-	"github.com/kr/pretty"
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -43,7 +41,6 @@ func GetCompaction(db *MongoDB, userID, dir, segment string) (map[string]int64, 
 	res := &Compaction{}
 	return res.Data, db.Run("compaction", func(c *mgo.Collection) error {
 		err := c.Find(query).One(res)
-		fmt.Printf("res %# v \n ", pretty.Formatter(res))
 		return err
 	})
 }
