@@ -24,14 +24,10 @@ func TestGenerateKeyNames(t *testing.T) {
 				Src: KeyNames{
 					CurrentCounterSet:  "set:counter:src:1488868200",
 					CurrentCounterHSet: "hset:counter:src:1488868200",
-					HourlyCounterSet:   "set:counter:src:1488866400",
-					HourlyCounterHSet:  "hset:counter:src:1488866400",
 				},
 				Dst: KeyNames{
 					CurrentCounterSet:  "set:counter:dst:1488868200",
 					CurrentCounterHSet: "hset:counter:dst:1488868200",
-					HourlyCounterSet:   "set:counter:dst:1488866400",
-					HourlyCounterHSet:  "hset:counter:dst:1488866400",
 				},
 			},
 		},
