@@ -121,7 +121,7 @@ func AddRedisConf(conf *flag.FlagSet) *string {
 		s := f.Value.String()
 		return &s
 	}
-	return conf.String(ConfRedisAddr, "localhost:6379", "Redis server address")
+	return conf.String(ConfRedisAddr, "redis:6379", "Redis server address")
 }
 
 // AddMongoConf adds redis conf onto flags.
@@ -130,7 +130,7 @@ func AddMongoConf(conf *flag.FlagSet) *string {
 		s := f.Value.String()
 		return &s
 	}
-	return conf.String(ConfMongoAddr, "localhost:27017", "Mongo server address")
+	return conf.String(ConfMongoAddr, "mongodb://mongo:27017", "Mongo server address")
 }
 
 // AddHTTPConf adds redis conf onto flags.
