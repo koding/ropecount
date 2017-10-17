@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: compactor
+  namespace: default
+  labels:
+    name: compactor
+    service: compactor
+    app: compactor
+spec:
+  type: LoadBalancer
+  selector:
+    name: compactor
+  ports:
+    - name: http
+      port: 8081
+      targetPort: 8081
+
+---
+
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: compactor
+  namespace: default
+  labels:
+    name: compactor
+    service: compactor
+    app: compactor
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: compactor
+        service: compactor
+        app: compactor
+    spec:
+      containers:
+      - image: koding/ropecount_base
+        name: compactor
+        command:
+        - "/go/bin/compactor"
+        - "--http.addr"
+        - ":8081"
+        - "--redis.addr"
+        - "redis-redis:6379"
+        - "--mongo.addr"
+        - "mongodb://mongo-mongodb:27017"
+        ports:
+        - name: http
+          containerPort: 8081
