@@ -2,7 +2,7 @@ version: '2'
 services:
   base:
     build: .
-    image: koding/ropecount_base
+    image: ropelive/countbase
     restart: on-failure
     volumes:
     - .:/go/src/github.com/koding/ropecount
