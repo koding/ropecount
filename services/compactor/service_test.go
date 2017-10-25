@@ -3,7 +3,6 @@ package compactor
 import (
 	"context"
 	"errors"
-	"flag"
 	"math/rand"
 	"strconv"
 	"testing"
@@ -16,12 +15,7 @@ import (
 
 func withApp(fn func(app *pkg.App)) {
 	name := "compator_test"
-	conf := flag.CommandLine // tests add more stuff
-
-	pkg.AddHTTPConf(conf)
-	pkg.AddRedisConf(conf)
-	pkg.AddMongoConf(conf)
-	app := pkg.NewApp(name, conf)
+	app := pkg.NewApp(name, pkg.ConfigureHTTP(), pkg.ConfigureRedis(), pkg.ConfigureMongo())
 	fn(app)
 }
 
@@ -88,7 +82,7 @@ func Test_compactorService_incrementMapValues(t *testing.T) {
 				if err := c.incrementMapValues(tt.args.source, tt.args.fns); (err != nil) != tt.wantErr {
 					t.Errorf("compactorService.incrementMapValues() error = %v, wantErr %v", err, tt.wantErr)
 				}
-				
+
 				if tt.wantErr {
 					return
 				}

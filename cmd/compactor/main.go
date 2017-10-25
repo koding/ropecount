@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"flag"
 	"net/http"
 	"time"
 
@@ -13,13 +12,7 @@ import (
 
 func main() {
 	name := "compactor"
-	conf := flag.NewFlagSet(name, flag.ExitOnError)
-
-	pkg.AddHTTPConf(conf)
-	pkg.AddRedisConf(conf)
-	pkg.AddMongoConf(conf)
-
-	app := pkg.NewApp(name, conf)
+	app := pkg.NewApp(name, pkg.ConfigureHTTP(), pkg.ConfigureRedis(), pkg.ConfigureMongo())
 
 	var s compactor.Service
 	{

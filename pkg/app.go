@@ -1,7 +1,6 @@
 package pkg
 
 import (
-	"flag"
 	"fmt"
 	"net/http"
 	"os"
@@ -20,27 +19,12 @@ type App struct {
 	redis  *redis.RedisSession
 	mongo  *mongodb.MongoDB
 
-	name      string
-	redisAddr *string
-	httpAddr  *string
-	mongoAddr *string
+	name     string
+	httpAddr *string
 }
 
-const (
-	// ConfHTTPAddr holds the flag name for http address
-	ConfHTTPAddr = "http.addr"
-
-	// ConfRedisAddr holds the flag name for redis server address
-	ConfRedisAddr = "redis.addr"
-
-	// ConfMongoAddr holds the flag name for mongodb server address
-	ConfMongoAddr = "mongo.addr"
-)
-
 // NewApp creates a new App context for the system.
-func NewApp(name string, conf *flag.FlagSet) *App {
-
-	var err error
+func NewApp(name string, opts ...Opts) *App {
 	var logger log.Logger
 
 	{ // initialize logger
@@ -51,40 +35,13 @@ func NewApp(name string, conf *flag.FlagSet) *App {
 		logger = log.With(logger, "caller", log.DefaultCaller)
 	}
 
-	err = conf.Parse(os.Args[1:])
-	dieIfError(logger, err, "flagparse")
-
 	app := &App{
 		name:   name,
 		Logger: logger,
 	}
 
-	{ // initialize configs
-		if redisFlag := conf.Lookup(ConfRedisAddr); redisFlag != nil {
-			redisAddr := redisFlag.Value.String()
-			app.redisAddr = &redisAddr
-		}
-		if httpFlag := conf.Lookup(ConfHTTPAddr); httpFlag != nil {
-			httpAddr := httpFlag.Value.String()
-			app.httpAddr = &httpAddr
-		}
-		if mongoFlag := conf.Lookup(ConfMongoAddr); mongoFlag != nil {
-			mongoAddr := mongoFlag.Value.String()
-			app.mongoAddr = &mongoAddr
-		}
-	}
-
-	{ // initialize if redis is given as config
-		if app.redisAddr != nil {
-			app.redis, err = NewRedisPool(*app.redisAddr)
-			dieIfError(logger, err, "redisconn")
-		}
-	}
-	{ // initialize if mongo is given as config
-		if app.mongoAddr != nil {
-			app.mongo, err = mongodb.New(*app.mongoAddr)
-			dieIfError(logger, err, "mongoconn")
-		}
+	for _, opt := range opts {
+		dieIfError(logger, opt(app), "configure")
 	}
 
 	return app
@@ -108,38 +65,54 @@ func (a *App) MustGetMongo() *mongodb.MongoDB {
 	return a.mongo
 }
 
-func dieIfError(logger log.Logger, err error, name string) {
-	if err != nil {
-		level.Error(logger).Log(name, err)
-		os.Exit(1)
+// Opts configures the application
+type Opts func(*App) error
+
+// ConfigureRedis configures redis
+func ConfigureRedis() func(*App) error {
+	url := os.Getenv("REDIS_URL")
+	if url == "" {
+		url = "redis:6379"
+	}
+
+	return func(app *App) error {
+		var err error
+		app.redis, err = NewRedisPool(url)
+		if err != nil {
+			return fmt.Errorf("redisconn: %s", err)
+		}
+		return nil
 	}
 }
 
-// AddRedisConf adds redis conf onto flags.
-func AddRedisConf(conf *flag.FlagSet) *string {
-	if f := conf.Lookup(ConfRedisAddr); f != nil {
-		s := f.Value.String()
-		return &s
+// ConfigureMongo configures Mongo
+func ConfigureMongo() func(*App) error {
+	url := os.Getenv("MONGO_URL")
+	if url == "" {
+		url = "mongodb://mongo:27017"
 	}
-	return conf.String(ConfRedisAddr, "redis:6379", "Redis server address")
+
+	return func(app *App) error {
+		var err error
+		app.mongo, err = mongodb.New(url)
+		if err != nil {
+			return fmt.Errorf("mongoconn: %s", err)
+		}
+		return nil
+	}
 }
 
-// AddMongoConf adds redis conf onto flags.
-func AddMongoConf(conf *flag.FlagSet) *string {
-	if f := conf.Lookup(ConfMongoAddr); f != nil {
-		s := f.Value.String()
-		return &s
+// ConfigureHTTP configures HTTP server
+func ConfigureHTTP() func(*App) error {
+	uri := os.Getenv("HTTP_ADDR")
+	if uri == "" {
+		uri = ":8080"
 	}
-	return conf.String(ConfMongoAddr, "mongodb://mongo:27017", "Mongo server address")
-}
 
-// AddHTTPConf adds redis conf onto flags.
-func AddHTTPConf(conf *flag.FlagSet) *string {
-	if f := conf.Lookup(ConfHTTPAddr); f != nil {
-		s := f.Value.String()
-		return &s
+	return func(app *App) error {
+		app.httpAddr = &uri
+		return nil
 	}
-	return conf.String(ConfHTTPAddr, ":8080", "HTTP listen address")
 }
 
 // Listen waits for app shutdown.
@@ -180,4 +153,11 @@ func (a *App) InfoLog(keyvals ...interface{}) error {
 
 func (a *App) DebugLog(keyvals ...interface{}) error {
 	return level.Debug(a.Logger).Log(keyvals...)
+}
+
+func dieIfError(logger log.Logger, err error, name string) {
+	if err != nil {
+		level.Error(logger).Log(name, err)
+		os.Exit(1)
+	}
 }

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"net/http"
 
 	"github.com/go-kit/kit/log"
@@ -11,12 +10,7 @@ import (
 
 func main() {
 	name := "counter"
-	conf := flag.NewFlagSet(name, flag.ExitOnError)
-
-	pkg.AddHTTPConf(conf)
-	pkg.AddRedisConf(conf)
-
-	app := pkg.NewApp(name, conf)
+	app := pkg.NewApp(name, pkg.ConfigureHTTP(), pkg.ConfigureRedis())
 
 	var s counter.Service
 	{
