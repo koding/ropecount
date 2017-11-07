@@ -25,6 +25,6 @@ jobs:
       - deploy:
           name: Push application Docker image
           command: |
-            [[ "${CIRCLE_BRANCH}" != "master" ]] && exit 0
+            [[ -z $CIRCLE_TAG ]] && exit 0
             docker login --username "${DOCKER_USERNAME}" --password "${DOCKER_PASSWORD}"
-            docker push ropelive/countbase
+            docker push ropelive/countbase:$CIRCLE_TAG
