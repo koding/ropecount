@@ -27,6 +27,7 @@ jobs:
           command: |
             [[ -z $CIRCLE_TAG ]] && exit 0
             docker login --username "${DOCKER_USERNAME}" --password "${DOCKER_PASSWORD}"
+            docker tag ropelive/countbase ropelive/countbase:$CIRCLE_TAG
             docker push ropelive/countbase:$CIRCLE_TAG
 
 deployment:
