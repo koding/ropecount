@@ -30,6 +30,7 @@ jobs:
             docker tag ropelive/countbase ropelive/countbase:$CIRCLE_TAG
             docker push ropelive/countbase:$CIRCLE_TAG
 
+# this step is required for CircleCI to understand that a tag is pushed - otherwise they don't start a build 
 deployment:
   fake_deploy_for_cci2:
     tag: /.*/
