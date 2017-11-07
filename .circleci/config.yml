@@ -28,3 +28,9 @@ jobs:
             [[ -z $CIRCLE_TAG ]] && exit 0
             docker login --username "${DOCKER_USERNAME}" --password "${DOCKER_PASSWORD}"
             docker push ropelive/countbase:$CIRCLE_TAG
+
+deployment:
+  fake_deploy_for_cci2:
+    tag: /.*/
+    commands:
+      - echo "make tags run in 2.0"
