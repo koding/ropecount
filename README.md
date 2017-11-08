@@ -1,6 +1,6 @@
 # ropecount
 
-[![CircleCI](https://circleci.com/gh/koding/rope-infra/tree/master.svg?style=svg&circle-token=1e8d2ffb37bddb5ad2085d46700fe7263e9a419c)](https://circleci.com/gh/koding/rope-infra/tree/master)
+[![CircleCI](https://circleci.com/gh/ropelive/count/tree/master.svg?style=svg)](https://circleci.com/gh/ropelive/count/tree/master)
 
 ## Running in Docker Compose
 
