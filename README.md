@@ -1,5 +1,7 @@
 # ropecount
 
+[![CircleCI](https://circleci.com/gh/koding/rope-infra/tree/master.svg?style=svg&circle-token=1e8d2ffb37bddb5ad2085d46700fe7263e9a419c)](https://circleci.com/gh/koding/rope-infra/tree/master)
+
 ## Running in Docker Compose
 
 docker-compose build && docker-compose up
