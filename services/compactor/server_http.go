@@ -17,6 +17,8 @@ func MakeHTTPHandler(s Service, logger log.Logger) http.Handler {
 		httptransport.ServerErrorLogger(logger),
 		httptransport.ServerErrorEncoder(encodeError),
 	}
+	r.Methods("GET", "POST").Path("/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
+	r.Methods("GET", "POST").Path("/healthz").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
 
 	r.Methods("POST").Path("/process").Handler(httptransport.NewServer(
 		MakeProcessEndpoint(s),
