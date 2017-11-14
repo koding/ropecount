@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/koding/redis"
-	"github.com/koding/ropecount/pkg"
-	"github.com/koding/ropecount/pkg/mongodb"
+	"github.com/ropelive/count/pkg"
+	"github.com/ropelive/count/pkg/mongodb"
 )
 
 func withApp(fn func(app *pkg.App)) {

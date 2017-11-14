@@ -7,8 +7,8 @@ import (
 
 	redigo "github.com/garyburd/redigo/redis"
 	"github.com/koding/redis"
-	"github.com/koding/ropecount/pkg"
-	"github.com/koding/ropecount/pkg/mongodb"
+	"github.com/ropelive/count/pkg"
+	"github.com/ropelive/count/pkg/mongodb"
 )
 
 // Service is a simple interface for compactor operations.

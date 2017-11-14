@@ -11,7 +11,7 @@ import (
 	"github.com/go-kit/kit/sd"
 	"github.com/go-kit/kit/sd/consul"
 	"github.com/go-kit/kit/sd/lb"
-	"github.com/koding/ropecount/services/counter"
+	"github.com/ropelive/count/services/counter"
 )
 
 // NewCounter returns a service that's load-balanced over instances of counter

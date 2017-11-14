@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/go-kit/kit/log"
-	"github.com/koding/ropecount/pkg"
-	"github.com/koding/ropecount/services/counter"
+	"github.com/ropelive/count/pkg"
+	"github.com/ropelive/count/services/counter"
 )
 
 func main() {

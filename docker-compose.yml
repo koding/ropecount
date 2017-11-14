@@ -5,7 +5,7 @@ services:
     image: ropelive/countbase
     restart: on-failure
     volumes:
-    - .:/go/src/github.com/koding/ropecount
+    - .:/go/src/github.com/ropelive/count
     - logvolume01:/var/log
 
 

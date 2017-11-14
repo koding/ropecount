@@ -3,7 +3,7 @@
 set -euo pipefail
 
 export GOPATH=$(
-	cd "$(dirname "$0")"/../../../.. #src/github.com/koding/ropecount
+	cd "$(dirname "$0")"/../../../.. #src/github.com/ropelive/count
 	pwd
 )
 export GOBIN=${GOBIN:-${GOPATH}/bin}
@@ -15,7 +15,7 @@ go-install() {
 }
 
 export COMMANDS=(
-	$(go list github.com/koding/ropecount/... | grep -v vendor)
+	$(go list github.com/ropelive/count/... | grep -v vendor)
 )
 
 go-install ${COMMANDS[@]}

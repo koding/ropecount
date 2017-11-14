@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/koding/ropecount/pkg"
+	"github.com/ropelive/count/pkg"
 )
 
 // Service is the interface for counter operations.

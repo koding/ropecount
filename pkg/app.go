@@ -10,7 +10,7 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/koding/redis"
-	"github.com/koding/ropecount/pkg/mongodb"
+	"github.com/ropelive/count/pkg/mongodb"
 )
 
 // App is the context for services.
