@@ -12,6 +12,7 @@ jobs:
           name: Install dependencies
           command: |
             apk add --no-cache py-pip=9.0.0-r1
+            apk add --no-cache jq
             pip install docker-compose==1.16.1
       - run:
           name: Build application Docker images
